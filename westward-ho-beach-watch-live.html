@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beach Watch — Westward Ho!</title>
+<style>
+  /* Type: system sans throughout — zero font-loading risk for a public
+     safety page that may be embedded/iframed on the council's site. */
+
+  :root{
+    color-scheme: light;
+    --bg:#eef3f1;
+    --bg-sea:#e2edee;
+    --bg-weather:#eef2e6;
+    --surface:#ffffff;
+    --surface-2:#f4f8f7;
+    --ink:#142a30;
+    --ink-2:#45585c;
+    --ink-muted:#7c8d8f;
+    --hairline:rgba(20,42,48,.13);
+    --accent:#1c7c82;
+    --accent-ink:#ffffff;
+    --accent-soft:#d7ecec;
+    --good:#0ca30c;
+    --warning:#fab219;
+    --serious:#ec835a;
+    --critical:#d03b3b;
+    --shadow: 0 1px 2px rgba(20,42,48,.06), 0 10px 26px -14px rgba(20,42,48,.22);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#0a1519;
+      --bg-sea:#0d1f24;
+      --bg-weather:#141d16;
+      --surface:#12262b;
+      --surface-2:#0f2024;
+      --ink:#eaf3f2;
+      --ink-2:#b9cbc9;
+      --ink-muted:#7d938f;
+      --hairline:rgba(234,243,242,.13);
+      --accent:#45b8bd;
+      --accent-ink:#062023;
+      --accent-soft:#123338;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 26px -14px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#0a1519;
+    --bg-sea:#0d1f24;
+    --bg-weather:#141d16;
+    --surface:#12262b;
+    --surface-2:#0f2024;
+    --ink:#eaf3f2;
+    --ink-2:#b9cbc9;
+    --ink-muted:#7d938f;
+    --hairline:rgba(234,243,242,.13);
+    --accent:#45b8bd;
+    --accent-ink:#062023;
+    --accent-soft:#123338;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 26px -14px rgba(0,0,0,.5);
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.4;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
+  }
+
+  .eyebrow{
+    font-size:.72rem;
+    font-weight:700;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    color:var(--ink-muted);
+  }
+
+  /* ---------- shell ---------- */
+  .shell{ max-width:1180px; margin:0 auto; padding:0 18px 40px; }
+
+  .masthead{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:22px 2px 16px;
+    flex-wrap:wrap;
+  }
+  .masthead h1{
+    margin:0; font-size:clamp(1.5rem,1.1rem + 1.6vw,2.15rem);
+    font-weight:800; letter-spacing:-0.01em; text-wrap:balance;
+  }
+  .masthead .place{ color:var(--accent); }
+  .masthead .badge{
+    font-size:.68rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--accent); border:1px solid var(--accent); border-radius:999px;
+    padding:5px 10px; white-space:nowrap;
+  }
+
+  /* ---------- safety banner ---------- */
+  .banner{
+    border-radius:var(--radius);
+    padding:16px 18px;
+    display:flex; align-items:center; gap:14px;
+    box-shadow:var(--shadow);
+    margin-bottom:16px;
+    border:1px solid var(--hairline);
+    background:var(--surface);
+  }
+  .banner.level-good{ background:color-mix(in srgb, var(--good) 10%, var(--surface)); }
+  .banner.level-warning{ background:color-mix(in srgb, var(--warning) 16%, var(--surface)); }
+  .banner.level-critical{ background:color-mix(in srgb, var(--critical) 18%, var(--surface)); }
+  .banner .icon{ flex:0 0 auto; width:44px; height:44px; }
+  .banner .text h2{ margin:0 0 2px; font-size:1.08rem; font-weight:800; }
+  .banner .text p{ margin:0; font-size:.88rem; color:var(--ink-2); }
+  .banner .chips{ margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+  .hazard-chip{
+    display:flex; align-items:center; gap:6px;
+    font-size:.76rem; font-weight:700; padding:6px 10px; border-radius:999px;
+    border:1px solid var(--hairline); background:var(--surface); white-space:nowrap;
+  }
+  .hazard-chip svg{ width:14px; height:14px; flex:none; }
+  .hazard-chip.c-good{ color:var(--good); }
+  .hazard-chip.c-warning{ color:#8a5a00; }
+  .hazard-chip.c-critical{ color:var(--critical); }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .hazard-chip.c-warning{ color:var(--warning); } }
+  :root[data-theme="dark"] .hazard-chip.c-warning{ color:var(--warning); }
+
+  /* ---------- panels ---------- */
+  .panels{
+    display:grid; grid-template-columns:1fr 1fr; gap:16px;
+  }
+  @media (max-width:860px){ .panels{ grid-template-columns:1fr; } }
+
+  .panel{
+    border-radius:var(--radius);
+    border:1px solid var(--hairline);
+    box-shadow:var(--shadow);
+    padding:18px 18px 20px;
+    display:flex; flex-direction:column; gap:14px;
+  }
+  .panel--sea{ background:var(--bg-sea); }
+  .panel--weather{ background:var(--bg-weather); }
+  .panel h2{
+    margin:0; font-size:.82rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ink-2);
+    display:flex; align-items:center; gap:8px;
+  }
+  .panel h2 .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); }
+
+  .card{
+    background:var(--surface); border-radius:12px; border:1px solid var(--hairline);
+    padding:14px;
+  }
+
+  /* tide graph */
+  .tide-card{ padding:14px 10px 6px; }
+  .tide-card .hd{ display:flex; justify-content:space-between; align-items:baseline; padding:0 8px 4px; gap:8px; flex-wrap:wrap; }
+  .tide-card .hd .now-height{ font-size:1.5rem; font-weight:800; font-variant-numeric:tabular-nums; }
+  .tide-card .hd .now-height small{ font-size:.62em; font-weight:700; color:var(--ink-muted); }
+  #tideSvg{ display:block; width:100%; height:auto; }
+
+  .stat-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  @media (max-width:520px){ .stat-row{ grid-template-columns:1fr 1fr; } }
+  .stat-tile{
+    background:var(--surface); border:1px solid var(--hairline); border-radius:12px;
+    padding:12px 12px 11px; display:flex; flex-direction:column; gap:6px; min-height:100px;
+  }
+  .stat-tile .lbl{ font-size:.68rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-muted); }
+  .stat-tile .val{ font-size:1.35rem; font-weight:800; font-variant-numeric:tabular-nums; display:flex; align-items:center; gap:6px; }
+  .stat-tile .sub{ font-size:.78rem; color:var(--ink-2); margin-top:auto; }
+  .stat-tile svg{ width:26px; height:26px; flex:none; }
+  .pictogram-tile{ align-items:center; text-align:center; }
+  .pictogram-tile svg.hero-icon{ width:44px; height:44px; margin:2px 0; }
+
+  /* access cards */
+  .access-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:480px){ .access-row{ grid-template-columns:1fr; } }
+  .access-card{
+    background:var(--surface); border:1px solid var(--hairline); border-radius:12px; padding:12px;
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .access-card .top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .access-card .name{ font-weight:700; font-size:.86rem; }
+  .pill{
+    font-size:.68rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase;
+    padding:3px 9px; border-radius:999px;
+  }
+  .pill.open{ background:color-mix(in srgb, var(--good) 18%, transparent); color:var(--good); }
+  .pill.closed{ background:var(--surface-2); color:var(--ink-muted); }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .pill.open{ background:color-mix(in srgb, var(--good) 28%, transparent); } }
+  :root[data-theme="dark"] .pill.open{ background:color-mix(in srgb, var(--good) 28%, transparent); }
+  .access-card .msg{ font-size:.84rem; color:var(--ink-2); }
+
+  /* wind hero */
+  .wind-hero{ display:flex; align-items:center; gap:16px; }
+  .wind-hero .rose{ flex:0 0 auto; width:112px; height:112px; }
+  .wind-hero .readout{ display:flex; flex-direction:column; gap:2px; }
+  .wind-hero .mph{ font-size:clamp(2.1rem,1.6rem + 1.6vw,2.7rem); font-weight:800; font-variant-numeric:tabular-nums; line-height:1; }
+  .wind-hero .mph small{ font-size:.42em; font-weight:700; color:var(--ink-muted); margin-left:4px; }
+  .wind-hero .desc{ font-size:.92rem; font-weight:700; color:var(--ink-2); }
+  .wind-hero .gust{ font-size:.78rem; color:var(--ink-muted); }
+  .src-flag{
+    display:none; font-size:.68rem; font-weight:800; letter-spacing:.03em; text-transform:uppercase;
+    color:#8a5a00; margin-top:2px;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .src-flag{ color:var(--warning); } }
+  :root[data-theme="dark"] .src-flag{ color:var(--warning); }
+
+  .offshore-callout{
+    display:flex; align-items:center; gap:12px;
+    background:color-mix(in srgb, var(--critical) 14%, var(--surface));
+    border:1px solid color-mix(in srgb, var(--critical) 40%, var(--hairline));
+    border-radius:12px; padding:12px 14px;
+  }
+  .offshore-callout svg{ width:34px; height:34px; flex:none; }
+  .offshore-callout strong{ display:block; font-size:.92rem; }
+  .offshore-callout span{ font-size:.8rem; color:var(--ink-2); }
+
+  /* today's forecast card */
+  .forecast-card{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .forecast-card svg.f-icon{ width:36px; height:36px; flex:none; }
+  .forecast-card .headline{ font-weight:700; font-size:.96rem; }
+  .forecast-card .badges{ display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; }
+  .mini-badge{
+    font-size:.72rem; font-weight:700; color:var(--ink-2); background:var(--surface-2);
+    border:1px solid var(--hairline); border-radius:999px; padding:4px 10px;
+    display:flex; align-items:center; gap:5px; white-space:nowrap;
+  }
+
+  footer.foot{
+    margin-top:20px; padding-top:14px; border-top:1px solid var(--hairline);
+    font-size:.74rem; color:var(--ink-muted); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  }
+  footer.foot .stale-line{ color:#8a5a00; font-weight:700; display:block; margin-top:2px; }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) footer.foot .stale-line{ color:var(--warning); } }
+  :root[data-theme="dark"] footer.foot .stale-line{ color:var(--warning); }
+
+  /* ---------- demo/condition control strip ---------- */
+  .demo-strip{
+    background:#0c1114; color:#e7ece9; font-size:.78rem;
+    border-bottom:1px solid rgba(255,255,255,.12);
+  }
+  .demo-strip .inner{
+    max-width:1180px; margin:0 auto; padding:8px 18px;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .demo-strip .tag{
+    font-weight:800; letter-spacing:.06em; text-transform:uppercase; font-size:.68rem;
+    background:#e7ece9; color:#0c1114; border-radius:5px; padding:3px 7px;
+  }
+  .demo-strip button{
+    font:inherit; font-size:.78rem; cursor:pointer;
+    background:#1b2328; color:#e7ece9; border:1px solid rgba(255,255,255,.16);
+    border-radius:999px; padding:5px 12px;
+  }
+  .demo-strip button[aria-pressed="true"]{ background:#e7ece9; color:#0c1114; border-color:#e7ece9; }
+  .demo-strip .divider{ width:1px; align-self:stretch; background:rgba(255,255,255,.16); margin:0 2px; }
+  .demo-strip .note{ color:#9aa6a2; flex-basis:100%; }
+
+  a{ color:var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="demo-strip">
+  <div class="inner">
+    <span class="tag">Conditions</span>
+    <button data-scenario="live" aria-pressed="true">Live</button>
+    <span class="divider"></span>
+    <span>Example conditions:</span>
+    <button data-scenario="calm">Calm summer day</button>
+    <button data-scenario="offshore">Offshore wind</button>
+    <button data-scenario="swell">Big swell, spring tide</button>
+    <button data-scenario="stale">Station stuck</button>
+    <span class="note">"Live" is what visitors see by default. The example buttons are for walking someone through what different conditions look like.</span>
+  </div>
+</div>
+
+<div class="shell">
+  <div class="masthead">
+    <h1>Beach Watch — <span class="place">Westward Ho!</span></h1>
+    <span class="badge">Example for Northam Town Council</span>
+  </div>
+
+  <div id="banner" class="banner level-good">
+    <svg class="icon" id="bannerIcon" viewBox="0 0 24 24"></svg>
+    <div class="text">
+      <h2 id="bannerHeadline">Conditions look normal</h2>
+      <p id="bannerSub">Always check the lifeguard flags on the beach — this page is a guide, not a substitute.</p>
+    </div>
+    <div class="chips" id="bannerChips"></div>
+  </div>
+
+  <main class="panels">
+    <section class="panel panel--sea">
+      <h2><span class="dot"></span>Sea</h2>
+
+      <div class="card tide-card" id="tideCard">
+        <div class="hd">
+          <div class="eyebrow">Tide — Bideford Bay</div>
+          <div class="now-height"><span id="tideNowVal">–</span>m <small>right now</small></div>
+        </div>
+        <svg id="tideSvg" viewBox="0 0 800 260" preserveAspectRatio="none"></svg>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-tile" id="tideStateTile">
+          <div class="lbl">Tide is</div>
+          <div class="val"><svg id="tideRateIcon" viewBox="0 0 24 24"></svg><span id="tideRateLabel">–</span></div>
+        </div>
+        <div class="stat-tile" id="seaTempTile">
+          <div class="lbl">Sea temperature</div>
+          <div class="val"><span id="seaTempVal">–</span>°C</div>
+          <div class="sub">Bideford Bay buoy</div>
+        </div>
+        <div class="stat-tile pictogram-tile" id="wavesTile">
+          <div class="lbl">Waves</div>
+          <svg class="hero-icon" id="waveIcon" viewBox="0 0 48 32"></svg>
+          <div class="val" id="waveLabel" style="font-size:1.05rem">–</div>
+        </div>
+      </div>
+
+      <div class="access-row">
+        <div class="access-card" id="accessWH">
+          <div class="top"><span class="name">Westward Ho! slip</span><span class="pill" id="whPill">–</span></div>
+          <div class="msg" id="whMsg">–</div>
+        </div>
+        <div class="access-card" id="accessSandymere">
+          <div class="top"><span class="name">Sandymere ramp</span><span class="pill" id="sandyPill">–</span></div>
+          <div class="msg" id="sandyMsg">–</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel panel--weather">
+      <h2><span class="dot"></span>Weather</h2>
+
+      <div class="card offshore-callout" id="offshoreCallout" hidden>
+        <svg viewBox="0 0 24 24" id="windsockIcon"></svg>
+        <div>
+          <strong>Offshore wind — inflatables can be blown out to sea</strong>
+          <span id="offshoreSub">Wind is blowing from the land out over the water.</span>
+        </div>
+      </div>
+
+      <div class="card wind-hero">
+        <svg class="rose" id="windRose" viewBox="0 0 120 120"></svg>
+        <div class="readout">
+          <div class="mph"><span id="windMph">–</span><small>mph</small></div>
+          <div class="desc" id="windDesc">–</div>
+          <div class="gust" id="windGust">–</div>
+          <div class="src-flag" id="windStaleFlag">Via RNLI backup reading</div>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-tile" id="feelsTile">
+          <div class="lbl">Feels like</div>
+          <div class="val"><span id="feelsVal">–</span>°C</div>
+          <div class="sub" id="airTempSub">–</div>
+        </div>
+        <div class="stat-tile" id="humidityTile">
+          <div class="lbl">Humidity</div>
+          <div class="val"><span id="humidityVal">–</span>%</div>
+          <div class="sub" id="pressureSub">–</div>
+        </div>
+        <div class="stat-tile" id="rainTile">
+          <div class="lbl">Rain</div>
+          <div class="val" id="rainVal">–</div>
+          <div class="sub" id="rainSub">–</div>
+        </div>
+      </div>
+
+      <div class="card forecast-card">
+        <svg class="f-icon" id="forecastIcon" viewBox="0 0 32 32"></svg>
+        <div>
+          <div class="eyebrow">Today</div>
+          <div class="headline" id="forecastText">–</div>
+        </div>
+        <div class="badges">
+          <span class="mini-badge" id="popBadge">–</span>
+          <span class="mini-badge" id="uvBadge">–</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>
+      Wind &amp; temperature: Northam Burrows station · Waves &amp; sea temperature: Channel Coastal Observatory, Bideford Bay buoy · Forecast: Met Office, Chivenor · Tide: Appledore predictions + live GNSS height (graph not shown yet in this build — see PUSH_URL step 5).
+      <span class="stale-line" id="staleLine" hidden></span>
+    </span>
+    <span id="clock">–</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =========================================================================
+     LIVE FEED — set this once the Gist exists (see beach_watch_public.yaml
+     step 1). Until then this page falls back to "Live data unavailable" and
+     the example-condition buttons still work normally. Gist raw URLs carry
+     CORS: * and resolve to the latest revision automatically.
+     ========================================================================= */
+  const LIVE_URL = "https://gist.githubusercontent.com/YOUR_GITHUB_USERNAME/GIST_ID_HERE/raw/beach-watch-latest.json";
+
+  /* =========================================================================
+     COLOUR — ported directly from custom_templates/windguru_schemes.jinja so
+     the wind/wave severity colours (and the black/white text-on-fill choice)
+     match the rest of the estuary/RNLI dashboards exactly.
+     ========================================================================= */
+  const WG_SCHEMES = {
+    wind:  { stops:[[255,255,255,1,0],[255,255,255,1,7],[103,247,241,1,13],[0,255,0,1,19],[255,240,0,1,27],[255,50,44,1,35],[255,10,200,1,45],[255,0,255,1,54],[150,50,255,1,64],[60,60,255,1,86],[0,0,255,1,100]], lo:0, hi:70 },
+    waves: { stops:[[255,255,255,1,0],[255,255,255,1,2],[122,131,255,1,20],[173,90,201,1,33],[255,80,100,1,53],[255,200,100,1,100]], lo:0, hi:15 }
+  };
+  function wgScheme(value, schemeName){
+    const s = WG_SCHEMES[schemeName];
+    const clamped = Math.min(Math.max(value, s.lo), s.hi);
+    const pct = ((clamped - s.lo) * 100) / (s.hi - s.lo);
+    let idx = 0;
+    for (let i = 0; i < s.stops.length; i++){ if (s.stops[i][3] <= pct) idx = i; }
+    const idxN = Math.min(idx + 1, s.stops.length - 1);
+    const a = s.stops[idx], b = s.stops[idxN];
+    const prop = a[3] === b[3] ? 1 : (pct - a[3]) / (b[3] - a[3]);
+    const r = Math.round(a[0] + prop * (b[0] - a[0]));
+    const g = Math.round(a[1] + prop * (b[1] - a[1]));
+    const bl = Math.round(a[2] + prop * (b[2] - a[2]));
+    return `rgb(${r},${g},${bl})`;
+  }
+  function textOn(rgbString){
+    const [r,g,b] = rgbString.match(/\d+/g).map(Number);
+    const lin = c => { c/=255; return c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); };
+    const L = 0.2126*lin(r) + 0.7152*lin(g) + 0.0722*lin(b);
+    return L > 0.5 ? '#10181a' : '#ffffff';
+  }
+
+  const svgns = "http://www.w3.org/2000/svg";
+  function el(tag, attrs){
+    const n = document.createElementNS(svgns, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+  function icon(target, paths, viewBox){
+    target.innerHTML = "";
+    if (viewBox) target.setAttribute("viewBox", viewBox);
+    (Array.isArray(paths) ? paths : [paths]).forEach(p => target.appendChild(el(p.tag||"path", p)));
+  }
+
+  /* =========================================================================
+     TIDE MODEL (example-conditions mode only) — synthetic two-constituent
+     curve tuned to roughly Bideford-Bay-scale range, NOT real predictions.
+     Live mode (below) skips this entirely and uses HA's precomputed
+     tide_state / wh_open / sandy_open instead — no client-side tide maths
+     runs against real data, only against the four example presets.
+     ========================================================================= */
+  const M2 = 12.4206, S2 = 12.0;
+  const PHASE_DEFAULT = 2.1, PHASE2 = 0.4;
+  function tideHeight(hoursEpoch, amp, phase){
+    const primary = amp * Math.cos(2*Math.PI*(hoursEpoch - phase)/M2);
+    const secondary = 0.4 * Math.cos(2*Math.PI*(hoursEpoch - PHASE2)/S2);
+    return 4.0 + primary + secondary;
+  }
+  function tideRate(hoursEpoch, amp, phase){
+    const primary = -amp * (2*Math.PI/M2) * Math.sin(2*Math.PI*(hoursEpoch - phase)/M2);
+    const secondary = -0.4 * (2*Math.PI/S2) * Math.sin(2*Math.PI*(hoursEpoch - PHASE2)/S2);
+    return primary + secondary;
+  }
+  function phaseForScenario(scn, nowH){
+    if (scn.forcePhase === 'risingFast') return nowH - 0.75 * M2;
+    return PHASE_DEFAULT;
+  }
+  function tideState(rate, height){
+    const r = Math.abs(rate);
+    if (r < 0.2) return height > 4.0 ? 'High' : 'Low';
+    if (rate > 0){
+      if (r >= 2.0) return 'Rising very fast';
+      if (r >= 1.5) return 'Rising fast';
+      return 'Rising';
+    }
+    return 'Falling';
+  }
+  function sampleCurve(startH, endH, stepMin, amp, phase){
+    const pts = [];
+    for (let h = startH; h <= endH; h += stepMin/60){
+      pts.push({ h, height: tideHeight(h, amp, phase) });
+    }
+    return pts;
+  }
+  function findExtrema(pts){
+    const out = [];
+    for (let i = 1; i < pts.length - 1; i++){
+      const a = pts[i-1].height, b = pts[i].height, c = pts[i+1].height;
+      const isPeak = (b > a && b >= c) || (b < a && b <= c);
+      if (isPeak && (!out.length || pts[i].h - out[out.length-1].h > 3)){
+        out.push({ h: pts[i].h, height: b, kind: b > 4.0 ? 'high' : 'low' });
+      }
+    }
+    return out;
+  }
+  function findCrossing(pts, threshold){
+    for (let i = 1; i < pts.length; i++){
+      const a = pts[i-1].height - threshold, b = pts[i].height - threshold;
+      if ((a <= 0 && b > 0) || (a >= 0 && b < 0)){
+        const frac = a === b ? 0 : (0 - a) / (b - a);
+        return { h: pts[i-1].h + frac * (pts[i].h - pts[i-1].h), rising: b > a };
+      }
+    }
+    return null;
+  }
+  function fmtTime(hoursEpoch){
+    const d = new Date(hoursEpoch * 3600000);
+    return d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+  }
+  function fmtDayTime(hoursEpoch, nowH){
+    const d = new Date(hoursEpoch * 3600000);
+    const now = new Date(nowH * 3600000);
+    const t = d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+    return d.toDateString() === now.toDateString() ? t : `tomorrow ${t}`;
+  }
+
+  function waveLabelFor(m){
+    if (m < 0.3) return 'Calm';
+    if (m < 0.6) return 'Slight';
+    if (m < 1.25) return 'Moderate';
+    if (m < 2.5) return 'Rough';
+    if (m < 4) return 'Very rough';
+    return 'High';
+  }
+  const UV_BANDS = [[3,'Low'],[6,'Moderate'],[8,'High'],[11,'Very high'],[99,'Extreme']];
+  function uvBandFor(v){ for (const [max,label] of UV_BANDS){ if (v < max) return label; } return 'Extreme'; }
+
+  /* =========================================================================
+     EXAMPLE-CONDITION PRESETS (unchanged from the design-review prototype)
+     ========================================================================= */
+  const SCENARIOS = {
+    calm: {
+      label:'Calm summer day', tideAmp:3.0,
+      windKn:9, gustKn:12, dirDeg:250,
+      airTemp:19, feelsLike:18, humidity:62, pressureTrend:'steady',
+      rainToday:0, rainNow:false, lastRainHrs:14,
+      seaTemp:17, waveHeightM:0.25,
+      condition:'Sunny spells', kind:'sun', pop:10, uvIndex:5,
+      station:'ok'
+    },
+    offshore: {
+      label:'Offshore wind', tideAmp:2.6,
+      windKn:16, gustKn:24, dirDeg:75,
+      airTemp:17, feelsLike:15, humidity:58, pressureTrend:'falling',
+      rainToday:0, rainNow:false, lastRainHrs:30,
+      seaTemp:16, waveHeightM:0.9,
+      condition:'Bright, blustery', kind:'wind', pop:15, uvIndex:4,
+      station:'ok'
+    },
+    swell: {
+      label:'Big swell, spring tide', tideAmp:4.15, forcePhase:'risingFast',
+      windKn:22, gustKn:31, dirDeg:260,
+      airTemp:15, feelsLike:11, humidity:86, pressureTrend:'falling',
+      rainToday:7.2, rainNow:true, lastRainHrs:0,
+      seaTemp:15, waveHeightM:2.8,
+      condition:'Squally showers', kind:'rain', pop:85, uvIndex:1,
+      station:'ok'
+    },
+    stale: {
+      label:'Station stuck', tideAmp:3.3,
+      windKn:13, gustKn:18, dirDeg:210,
+      airTemp:18, feelsLike:17, humidity:70, pressureTrend:'steady',
+      rainToday:1.4, rainNow:false, lastRainHrs:3,
+      seaTemp:16, waveHeightM:0.5,
+      condition:'Cloudy periods', kind:'cloud', pop:40, uvIndex:3,
+      station:'stale'
+    }
+  };
+  let current = 'live';
+  let liveData = null;
+  let liveError = false;
+
+  /* =========================================================================
+     LIVE FEED — normalise the Gist's JSON into the same shape the example
+     presets use, so renderWind/renderRain/renderWaves/renderForecast/
+     renderFootnote/renderBanner run identically in both modes.
+     ========================================================================= */
+  const DIR_DEG = {N:0,NNE:22.5,NE:45,ENE:67.5,E:90,ESE:112.5,SE:135,SSE:157.5,S:180,SSW:202.5,SW:225,WSW:247.5,W:270,WNW:292.5,NW:315,NNW:337.5};
+  function kindFromCondition(text){
+    const t = (text || '').toLowerCase();
+    if (/rain|shower|drizzle|storm/.test(t)) return 'rain';
+    if (/wind|breez|gale/.test(t)) return 'wind';
+    if (/sun|clear|fair/.test(t)) return 'sun';
+    return 'cloud';
+  }
+  function liveToScn(live){
+    return {
+      windKn: (live.wind_mph || 0) / 1.15078,
+      gustKn: (live.wind_gust_mph || 0) / 1.15078,
+      dirDeg: DIR_DEG[live.wind_dir] ?? 0,
+      airTemp: live.air_temp, feelsLike: live.feels_like, humidity: live.humidity,
+      pressureTrend: live.pressure_trend || 'steady', // not yet in the HA payload — defaults to steady
+      rainToday: live.rain_today, rainNow: live.rain_now, lastRainHrs: live.last_rain_hrs,
+      seaTemp: live.sea_temp, waveHeightM: live.wave_height_m,
+      condition: live.condition, kind: kindFromCondition(live.condition),
+      pop: live.pop, uvIndex: live.uv_index,
+      station: live.station_ok ? 'ok' : 'stale'
+    };
+  }
+  async function fetchLive(){
+    try {
+      const res = await fetch(LIVE_URL, { cache: 'no-store' });
+      if (!res.ok) throw new Error('status ' + res.status);
+      liveData = await res.json();
+      liveError = false;
+    } catch (e){
+      liveError = true;
+    }
+    if (current === 'live') renderAll();
+  }
+
+  /* =========================================================================
+     ICONS
+     ========================================================================= */
+  function drawTick(target, ok){
+    icon(target, ok ? [
+      { tag:'circle', cx:12, cy:12, r:11, fill:'var(--good)' },
+      { tag:'path', d:'M7 12.5 10.3 16 17 8', stroke:'#fff', 'stroke-width':2.2, fill:'none', 'stroke-linecap':'round', 'stroke-linejoin':'round' }
+    ] : []);
+  }
+  function drawWarnTriangle(target, color){
+    icon(target, [
+      { tag:'path', d:'M12 3 22 20 2 20 Z', fill:color },
+      { tag:'rect', x:11, y:9.5, width:2, height:5.2, rx:1, fill:'#fff' },
+      { tag:'circle', cx:12, cy:16.3, r:1.15, fill:'#fff' }
+    ]);
+  }
+  function drawWindsock(target, color, rotateDeg){
+    target.innerHTML = "";
+    target.setAttribute('viewBox','0 0 24 24');
+    const g = el('g', { transform:`rotate(${rotateDeg} 12 12)` });
+    g.appendChild(el('line', { x1:12, y1:2, x2:12, y2:22, stroke:'var(--ink-muted)', 'stroke-width':1.6 }));
+    g.appendChild(el('path', { d:'M12 6 21 8 18 10 21 12 12 13 Z', fill:color }));
+    target.appendChild(g);
+  }
+  function drawArrowUp(target,color,double){
+    icon(target, [
+      { tag:'path', d: double ? 'M12 3 18 10 14 10 14 15 10 15 10 10 6 10 Z M12 12 18 19 14 19 14 22 10 22 10 19 6 19 Z' : 'M12 4 19 13 14.5 13 14.5 21 9.5 21 9.5 13 5 13 Z', fill:color }
+    ]);
+  }
+  function drawArrowDown(target,color){
+    icon(target, [{ tag:'path', d:'M12 21 5 12 9.5 12 9.5 4 14.5 4 14.5 12 19 12 Z', fill:color }]);
+  }
+  function drawDash(target,color){
+    icon(target, [{ tag:'rect', x:4, y:10.7, width:16, height:2.6, rx:1.3, fill:color }]);
+  }
+  function drawDrop(target,color){
+    icon(target, [{ tag:'path', d:'M13 3c4 5.5 6.5 9 6.5 12a6.5 6.5 0 1 1-13 0C6.5 12 9 8.5 13 3Z', fill:color }], '0 0 26 26');
+  }
+  function drawWaveIcon(target, heightM){
+    const bg = wgScheme(heightM, 'waves');
+    target.innerHTML = "";
+    target.setAttribute('viewBox','0 0 48 32');
+    target.appendChild(el('rect', { x:0,y:0,width:48,height:32, rx:8, fill:bg }));
+    const amp = 2 + Math.min(heightM,4)*2.6;
+    const rough = heightM > 1.2;
+    [12,19,26].forEach((y,i)=>{
+      const d = `M0 ${y} C 6 ${y-amp} 10 ${y+amp} 16 ${y} S 26 ${y+amp} 32 ${y} S 42 ${y+amp} 48 ${y}`;
+      target.appendChild(el('path', { d, fill:'none', stroke: textOn(bg), 'stroke-width': rough ? 2.4 : 1.8, 'stroke-linecap':'round', opacity: 0.55 + i*0.15 }));
+    });
+    if (rough){
+      for (let x=4; x<48; x+=9){
+        target.appendChild(el('path', { d:`M${x} 8 l3 -2.4`, stroke: textOn(bg), 'stroke-width':1.6, 'stroke-linecap':'round' }));
+      }
+    }
+  }
+  function drawWindRose(target, dirDeg, speedKn, offshore){
+    target.innerHTML = "";
+    target.setAttribute('viewBox','0 0 120 120');
+    const bg = wgScheme(speedKn, 'wind');
+    target.appendChild(el('circle', { cx:60, cy:60, r:56, fill:'var(--surface-2)', stroke:'var(--hairline)' }));
+    ['N','E','S','W'].forEach((c,i)=>{
+      const a = i*90 - 90, x = 60 + 44*Math.cos(a*Math.PI/180), y = 60 + 44*Math.sin(a*Math.PI/180);
+      const t = el('text', { x, y:y+4, 'text-anchor':'middle', 'font-size':10, 'font-weight':700, fill:'var(--ink-muted)' });
+      t.textContent = c; target.appendChild(t);
+    });
+    const fromA = dirDeg - 90;
+    const toA = fromA + 180;
+    const x1 = 60 + 34*Math.cos(fromA*Math.PI/180), y1 = 60 + 34*Math.sin(fromA*Math.PI/180);
+    const x2 = 60 + 34*Math.cos(toA*Math.PI/180), y2 = 60 + 34*Math.sin(toA*Math.PI/180);
+    target.appendChild(el('line', { x1, y1, x2, y2, stroke: offshore ? 'var(--critical)' : bg, 'stroke-width':4, 'stroke-linecap':'round' }));
+    const headA = toA;
+    const hx = 60 + 34*Math.cos(headA*Math.PI/180), hy = 60 + 34*Math.sin(headA*Math.PI/180);
+    const g = el('g', { transform:`translate(${hx} ${hy}) rotate(${headA+90})` });
+    g.appendChild(el('path', { d:'M0 -8 8 8 -8 8 Z', fill: offshore ? 'var(--critical)' : bg }));
+    target.appendChild(g);
+    target.appendChild(el('circle', { cx:60, cy:60, r:5, fill:'var(--ink)' }));
+  }
+  function drawForecastIcon(target, kind){
+    const map = {
+      sun:[{tag:'circle',cx:16,cy:16,r:7,fill:'#f5b731'}],
+      cloud:[{tag:'ellipse',cx:16,cy:19,rx:11,ry:7,fill:'var(--ink-muted)'},{tag:'circle',cx:11,cy:15,r:6,fill:'var(--ink-muted)'},{tag:'circle',cx:20,cy:14,r:7,fill:'var(--ink-muted)'}],
+      rain:[{tag:'ellipse',cx:16,cy:14,rx:10,ry:6.5,fill:'var(--ink-muted)'},{tag:'line',x1:11,y1:22,x2:9,y2:28,stroke:'var(--accent)','stroke-width':2,'stroke-linecap':'round'},{tag:'line',x1:17,y1:22,x2:15,y2:28,stroke:'var(--accent)','stroke-width':2,'stroke-linecap':'round'},{tag:'line',x1:23,y1:22,x2:21,y2:28,stroke:'var(--accent)','stroke-width':2,'stroke-linecap':'round'}],
+      wind:[{tag:'path',d:'M4 12h16a4 4 0 1 0-3.6-5.7',stroke:'var(--ink-muted)','stroke-width':2,fill:'none','stroke-linecap':'round'},{tag:'path',d:'M4 20h20a3.5 3.5 0 1 1-3.2 5',stroke:'var(--ink-muted)','stroke-width':2,fill:'none','stroke-linecap':'round'}]
+    };
+    icon(target, map[kind]||map.cloud, '0 0 32 32');
+  }
+
+  /* =========================================================================
+     TIDE-STATE TILE — shared between example-conditions mode (computed
+     client-side from the synthetic curve) and live mode (HA's precomputed
+     word, straight from sensor.beach_watch_public).
+     ========================================================================= */
+  function applyTideStateTile(state){
+    const rateLabelEl = document.getElementById('tideRateLabel');
+    rateLabelEl.textContent = state;
+    const iconTarget = document.getElementById('tideRateIcon');
+    let rateColor = 'var(--accent)';
+    if (state==='Rising fast') rateColor = 'var(--warning)';
+    if (state==='Rising very fast') rateColor = 'var(--critical)';
+    if (state==='Rising very fast') drawArrowUp(iconTarget, rateColor, true);
+    else if (state.startsWith('Rising')) drawArrowUp(iconTarget, rateColor, false);
+    else if (state==='Falling') drawArrowDown(iconTarget, rateColor);
+    else drawDash(iconTarget, rateColor);
+    rateLabelEl.style.color = rateColor;
+  }
+
+  /* =========================================================================
+     RENDER — shared across both modes
+     ========================================================================= */
+  function renderTide(scn){
+    document.getElementById('tideCard').style.display = '';
+    const nowH = Date.now()/3600000;
+    const dayStart = Math.floor(nowH/24)*24;
+    const domainStart = Math.min(dayStart, nowH - 8);
+    const domainEnd = dayStart + 48;
+    const phase = phaseForScenario(scn, nowH);
+    const pts = sampleCurve(domainStart, domainEnd, 4, scn.tideAmp, phase);
+    const yLo = -0.5, yHi = 8.5;
+    const W = 800, H = 260, padL = 8, padR = 8, padT = 14, padB = 34;
+    const x = h => padL + (h - domainStart) / (domainEnd - domainStart) * (W - padL - padR);
+    const y = v => padT + (1 - (v - yLo)/(yHi - yLo)) * (H - padT - padB);
+
+    const svg = document.getElementById('tideSvg');
+    svg.innerHTML = "";
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+    for (let v = 0; v <= 8; v += 2){
+      svg.appendChild(el('line', { x1:padL, x2:W-padR, y1:y(v), y2:y(v), stroke:'var(--hairline)', 'stroke-width':1 }));
+      const t = el('text', { x:padL+2, y:y(v)-3, 'font-size':9, fill:'var(--ink-muted)' }); t.textContent = v+'m'; svg.appendChild(t);
+    }
+    for (let d = Math.ceil(domainStart/24); d*24 <= domainEnd; d++){
+      const xx = x(d*24);
+      svg.appendChild(el('line', { x1:xx, x2:xx, y1:padT, y2:H-padB, stroke:'var(--hairline)', 'stroke-width':1, 'stroke-dasharray':'2 3' }));
+    }
+
+    const whT = 4.5, sandyT = 5.0; // fixed for example-conditions mode; never shown numerically
+    [ [sandyT, 'var(--accent)'], [whT, 'var(--ink-muted)'] ].forEach(([t, color])=>{
+      svg.appendChild(el('line', { x1:padL, x2:W-padR, y1:y(t), y2:y(t), stroke:color, 'stroke-width':1, 'stroke-dasharray':'5 4', opacity:.7 }));
+    });
+
+    let d = '';
+    pts.forEach((p,i)=>{ d += (i===0?'M':'L') + x(p.h).toFixed(1) + ' ' + y(p.height).toFixed(1) + ' '; });
+    const areaD = d + `L ${x(domainEnd)} ${y(yLo)} L ${x(domainStart)} ${y(yLo)} Z`;
+    svg.appendChild(el('path', { d:areaD, fill:'var(--accent-soft)', opacity:.55 }));
+    svg.appendChild(el('path', { d, fill:'none', stroke:'var(--accent)', 'stroke-width':2.5, 'stroke-linejoin':'round' }));
+
+    findExtrema(pts).forEach(ex=>{
+      const cx = x(ex.h), cy = y(ex.height);
+      svg.appendChild(el('circle', { cx, cy, r:3.2, fill:'var(--surface)', stroke:'var(--accent)', 'stroke-width':2 }));
+      const t = el('text', { x:cx, y: ex.kind==='high'? cy-9 : cy+16, 'text-anchor':'middle', 'font-size':10, 'font-weight':700, fill:'var(--ink-2)' });
+      t.textContent = fmtTime(ex.h);
+      svg.appendChild(t);
+    });
+
+    const nowHeight = tideHeight(nowH, scn.tideAmp, phase);
+    const nx = x(nowH), ny = y(nowHeight);
+    svg.appendChild(el('line', { x1:nx, x2:nx, y1:padT, y2:H-padB, stroke:'var(--ink-muted)', 'stroke-width':1, 'stroke-dasharray':'3 3' }));
+    svg.appendChild(el('circle', { cx:nx, cy:ny, r:5, fill:'var(--critical)', stroke:'var(--surface)', 'stroke-width':2 }));
+    const nowLbl = el('text', { x:nx, y:H-padB+16, 'text-anchor':'middle', 'font-size':10, 'font-weight':800, fill:'var(--ink)' });
+    nowLbl.textContent = 'now';
+    svg.appendChild(nowLbl);
+
+    document.getElementById('tideNowVal').textContent = nowHeight.toFixed(1);
+
+    const rate = tideRate(nowH, scn.tideAmp, phase);
+    const state = tideState(rate, nowHeight);
+    applyTideStateTile(state);
+
+    function renderAccess(prefix, threshold){
+      const nowOk = nowHeight < threshold;
+      const cross = findCrossing(pts.filter(p=>p.h>=nowH), threshold);
+      document.getElementById(prefix+'Pill').textContent = nowOk ? 'Open' : 'Closed';
+      document.getElementById(prefix+'Pill').className = 'pill ' + (nowOk ? 'open' : 'closed');
+      const msg = document.getElementById(prefix+'Msg');
+      if (!cross){ msg.textContent = nowOk ? 'Accessible for the rest of this window.' : 'Covered for the rest of this window.'; return; }
+      if (nowOk) msg.textContent = `Accessible until ${fmtDayTime(cross.h, nowH)}, then covers.`;
+      else msg.textContent = `Covered — clear again from ${fmtDayTime(cross.h, nowH)}.`;
+    }
+    renderAccess('wh', whT);
+    renderAccess('sandy', sandyT);
+
+    return { state };
+  }
+
+  function renderAccessLive(prefix, open, until){
+    document.getElementById(prefix+'Pill').textContent = open ? 'Open' : 'Closed';
+    document.getElementById(prefix+'Pill').className = 'pill ' + (open ? 'open' : 'closed');
+    const msg = document.getElementById(prefix+'Msg');
+    if (until){
+      msg.textContent = open ? `Accessible until ${until}, then covers.` : `Covered — clear again from ${until}.`;
+    } else {
+      msg.textContent = open ? 'Currently accessible.' : 'Currently covered.';
+    }
+  }
+  function renderTideLive(live){
+    // No live prediction curve yet (see footer + package TODO) — the graph
+    // card is hidden rather than faked. Tide-is tile and access cards use
+    // HA's precomputed values directly.
+    document.getElementById('tideCard').style.display = 'none';
+    applyTideStateTile(live.tide_state);
+    renderAccessLive('wh', live.wh_open, live.wh_until);
+    renderAccessLive('sandy', live.sandy_open, live.sandy_until);
+    return { state: live.tide_state };
+  }
+
+  function renderWind(scn){
+    const mph = Math.round(scn.windKn * 1.15078);
+    const gustMph = Math.round(scn.gustKn * 1.15078);
+    document.getElementById('windMph').textContent = mph;
+    document.getElementById('windGust').textContent = `Gusting ${gustMph} mph`;
+    document.getElementById('windStaleFlag').style.display = scn.station === 'ok' ? 'none' : 'block';
+
+    const breakpoints = [0,3.5,6.5,10.5,16.5,21.5,27.5,33.5,40.5,47.5,55.5,63.5,1000];
+    const words = ['Calm','Light air','Light breeze','Gentle breeze','Moderate breeze','Fresh breeze','Strong breeze','Near gale','Gale','Strong gale','Storm','Violent storm'];
+    let bIdx = 0; for (let i=0;i<breakpoints.length-1;i++){ if (scn.windKn >= breakpoints[i]) bIdx = i; }
+    document.getElementById('windDesc').textContent = words[Math.min(bIdx, words.length-1)];
+
+    const dirWords = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+    const dirIdx = Math.round(scn.dirDeg/22.5) % 16;
+    const dirLabel = dirWords[dirIdx];
+    const offshore = dirLabel.includes('E') && scn.windKn >= 8;
+    const offshoreSevere = offshore && scn.windKn >= 15;
+
+    drawWindRose(document.getElementById('windRose'), scn.dirDeg, scn.windKn, offshore);
+
+    const callout = document.getElementById('offshoreCallout');
+    callout.style.display = offshore ? 'flex' : 'none';
+    if (offshore){
+      drawWindsock(document.getElementById('windsockIcon'), offshoreSevere ? 'var(--critical)' : 'var(--warning)', 0);
+      document.getElementById('offshoreSub').textContent = `Wind from the ${dirLabel} at ${mph} mph, gusting ${gustMph}. Keep inflatables and paddleboards off the water.`;
+    }
+
+    document.getElementById('feelsVal').textContent = Math.round(scn.feelsLike);
+    document.getElementById('airTempSub').textContent = `Air ${Math.round(scn.airTemp)}°C, wind from ${dirLabel}`;
+
+    document.getElementById('humidityVal').textContent = Math.round(scn.humidity);
+    const trendWord = { rising:'Pressure rising', falling:'Pressure falling', steady:'Pressure steady' }[scn.pressureTrend];
+    document.getElementById('pressureSub').textContent = trendWord;
+
+    return { mph, offshore, offshoreSevere, dirLabel };
+  }
+
+  function renderRain(scn){
+    const val = document.getElementById('rainVal');
+    const sub = document.getElementById('rainSub');
+    const icon_ = document.createElementNS(svgns,'svg');
+    val.innerHTML = ''; val.appendChild(icon_);
+    const label = document.createElement('span');
+    if (scn.rainNow){
+      drawDrop(icon_, 'var(--accent)');
+      label.textContent = 'Raining now';
+      sub.textContent = `${scn.rainToday.toFixed(1)}mm so far today`;
+    } else if (scn.rainToday > 0){
+      drawDrop(icon_, 'var(--ink-muted)');
+      label.textContent = 'Dry right now';
+      sub.textContent = `${scn.rainToday.toFixed(1)}mm fell today`;
+    } else {
+      drawDrop(icon_, 'var(--ink-muted)');
+      label.textContent = 'None today';
+      sub.textContent = scn.lastRainHrs < 1 ? 'Last rain under an hour ago' : `Last rain about ${scn.lastRainHrs}h ago`;
+    }
+    val.appendChild(label);
+  }
+
+  function renderWaves(scn){
+    drawWaveIcon(document.getElementById('waveIcon'), scn.waveHeightM);
+    const lbl = waveLabelFor(scn.waveHeightM);
+    document.getElementById('waveLabel').textContent = lbl;
+    document.getElementById('seaTempVal').textContent = Math.round(scn.seaTemp);
+    return { waveLabel: lbl };
+  }
+
+  function renderForecast(scn){
+    drawForecastIcon(document.getElementById('forecastIcon'), scn.kind);
+    document.getElementById('forecastText').textContent = scn.condition;
+    document.getElementById('popBadge').textContent = `☔ ${Math.round(scn.pop)}% chance of rain`;
+    document.getElementById('uvBadge').textContent = `☀ UV ${uvBandFor(scn.uvIndex)}`;
+  }
+
+  function renderFootnote(scn){
+    const line = document.getElementById('staleLine');
+    if (scn.station === 'ok'){ line.hidden = true; return; }
+    line.hidden = false;
+    line.textContent = 'Visitor centre station currently unavailable — wind and temperature shown are the nearest RNLI reading instead.';
+  }
+
+  function renderBanner(tide, wind, waves){
+    const hazards = [];
+    if (wind.offshoreSevere) hazards.push({ level:'critical', label:'Strong offshore wind' });
+    else if (wind.offshore) hazards.push({ level:'warning', label:'Offshore wind' });
+    if (waves.waveLabel === 'Very rough' || waves.waveLabel === 'High') hazards.push({ level:'critical', label:'Big waves' });
+    else if (waves.waveLabel === 'Rough') hazards.push({ level:'warning', label:'Rough sea' });
+    if (tide.state === 'Rising very fast') hazards.push({ level:'critical', label:'Tide rising very fast' });
+    else if (tide.state === 'Rising fast') hazards.push({ level:'warning', label:'Tide rising fast' });
+
+    const worst = hazards.reduce((w,h)=> (h.level==='critical' || (h.level==='warning' && w!=='critical')) ? h.level : w, 'good');
+
+    const banner = document.getElementById('banner');
+    banner.className = 'banner level-' + worst;
+    const icon_ = document.getElementById('bannerIcon');
+    const headline = document.getElementById('bannerHeadline');
+    const sub = document.getElementById('bannerSub');
+
+    if (worst === 'critical'){
+      drawWarnTriangle(icon_, 'var(--critical)');
+      headline.textContent = 'Take care — hazardous conditions';
+      sub.textContent = 'One or more conditions today can catch people out. Check the details below before going in the water.';
+    } else if (worst === 'warning'){
+      drawWarnTriangle(icon_, 'var(--warning)');
+      headline.textContent = 'Conditions need a bit of care today';
+      sub.textContent = 'Nothing extreme, but worth checking the details below, especially with inflatables or young children.';
+    } else {
+      drawTick(icon_, true);
+      headline.textContent = 'Conditions look normal';
+      sub.textContent = 'Always check the lifeguard flags on the beach — this page is a guide, not a substitute.';
+    }
+
+    const chips = document.getElementById('bannerChips');
+    chips.innerHTML = '';
+    hazards.forEach(h=>{
+      const chip = document.createElement('div');
+      chip.className = 'hazard-chip c-' + h.level;
+      const svg = el('svg', { viewBox:'0 0 24 24' });
+      chip.appendChild(svg);
+      drawWarnTriangle(svg, h.level==='critical' ? 'var(--critical)' : 'var(--warning)');
+      const span = document.createElement('span'); span.textContent = h.label;
+      chip.appendChild(span);
+      chips.appendChild(chip);
+    });
+  }
+
+  function renderLiveUnavailable(){
+    document.getElementById('tideCard').style.display = 'none';
+    const banner = document.getElementById('banner');
+    banner.className = 'banner level-warning';
+    drawWarnTriangle(document.getElementById('bannerIcon'), 'var(--warning)');
+    document.getElementById('bannerHeadline').textContent = 'Live data unavailable right now';
+    document.getElementById('bannerSub').textContent = 'Please check conditions in person and the lifeguard flags on the beach.';
+    document.getElementById('bannerChips').innerHTML = '';
+    ['windMph','windDesc','windGust','feelsVal','humidityVal','seaTempVal','waveLabel','forecastText','pressureSub','airTempSub','rainSub'].forEach(id=>{
+      const e = document.getElementById(id); if (e) e.textContent = '–';
+    });
+    document.getElementById('rainVal').textContent = '–';
+    document.getElementById('popBadge').textContent = '–';
+    document.getElementById('uvBadge').textContent = '–';
+    document.getElementById('tideRateLabel').textContent = '–';
+    document.getElementById('tideRateLabel').style.color = '';
+    document.getElementById('tideRateIcon').innerHTML = '';
+    drawWindRose(document.getElementById('windRose'), 0, 0, false);
+    drawWaveIcon(document.getElementById('waveIcon'), 0);
+    drawForecastIcon(document.getElementById('forecastIcon'), 'cloud');
+    document.getElementById('whPill').textContent = '–'; document.getElementById('whPill').className = 'pill closed';
+    document.getElementById('sandyPill').textContent = '–'; document.getElementById('sandyPill').className = 'pill closed';
+    document.getElementById('whMsg').textContent = 'Data unavailable.';
+    document.getElementById('sandyMsg').textContent = 'Data unavailable.';
+    document.getElementById('offshoreCallout').style.display = 'none';
+    document.getElementById('windStaleFlag').style.display = 'none';
+    document.getElementById('staleLine').hidden = true;
+    document.getElementById('clock').textContent = 'Live feed unavailable';
+  }
+
+  function renderLive(){
+    if (!liveData){
+      renderLiveUnavailable();
+      return;
+    }
+    const viewScn = liveToScn(liveData);
+    const tide = renderTideLive(liveData);
+    const wind = renderWind(viewScn);
+    renderRain(viewScn);
+    const waves = renderWaves(viewScn);
+    renderForecast(viewScn);
+    renderFootnote(viewScn);
+    renderBanner(tide, wind, waves);
+    const ageMin = Math.max(0, Math.round((Date.now() - new Date(liveData.generated_at).getTime())/60000));
+    document.getElementById('clock').textContent = liveError
+      ? `Live feed unreachable — showing conditions from ${ageMin} min ago`
+      : `Live · updated ${ageMin} min ago`;
+  }
+
+  function renderAll(){
+    if (current === 'live'){
+      renderLive();
+      return;
+    }
+    const scn = SCENARIOS[current];
+    const tide = renderTide(scn);
+    const wind = renderWind(scn);
+    renderRain(scn);
+    const waves = renderWaves(scn);
+    renderForecast(scn);
+    renderFootnote(scn);
+    renderBanner(tide, wind, waves);
+    document.getElementById('clock').textContent = 'Example conditions: ' + SCENARIOS[current].label;
+  }
+
+  document.querySelectorAll('.demo-strip button[data-scenario]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.demo-strip button[data-scenario]').forEach(b=>b.setAttribute('aria-pressed','false'));
+      btn.setAttribute('aria-pressed','true');
+      current = btn.dataset.scenario;
+      if (current === 'live') fetchLive();
+      else renderAll();
+    });
+  });
+
+  let resizeT;
+  window.addEventListener('resize', ()=>{ clearTimeout(resizeT); resizeT = setTimeout(renderAll, 120); });
+  renderAll();
+  fetchLive();
+  setInterval(fetchLive, 180000); // re-poll the Gist every 3 minutes
+  setInterval(renderAll, 60000);  // cheap re-render for clock/age text
+})();
+</script>
+</body>
+</html>
