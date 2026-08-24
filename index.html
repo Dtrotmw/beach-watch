@@ -645,16 +645,33 @@
   }
   function drawWindsock(target, color){
     // Fixed orientation, not wind-direction-driven: pole on the right,
-    // sock streaming left/"east" per the brief, long, drooping and
-    // unmissable — mounting hoop + asymmetric tapered body + seam lines
-    // read as an actual windsock rather than a flat flag/pennant.
+    // sock streaming left/"east" per the brief, long and drooping.
+    // Alternating bands (clipped to the tapered silhouette) are what
+    // actually reads as "windsock" at a glance, not just an outline —
+    // real windsocks are banded, a flat-fill cone reads as a flag/pennant.
     target.innerHTML = "";
     target.setAttribute('viewBox','0 0 24 24');
+    const bodyPath = 'M18 3.6 C12 4 6 6.4 1.4 8 C6 9.4 12 10.1 18 10.4 Z';
+
     target.appendChild(el('line', { x1:18, y1:1.5, x2:18, y2:22.5, stroke:'var(--ink-muted)', 'stroke-width':1.6 }));
     target.appendChild(el('ellipse', { cx:18, cy:7, rx:1.1, ry:3.6, fill:'none', stroke:'var(--ink-muted)', 'stroke-width':1 }));
-    target.appendChild(el('path', { d:'M18 3.6 C12 4 6 6.4 1.4 8 C6 9.4 12 10.1 18 10.4 Z', fill:color }));
-    target.appendChild(el('path', { d:'M11.3 5.1 C11 6.4 11 7.6 11.3 8.9', stroke:'rgba(0,0,0,.22)', 'stroke-width':.6, fill:'none' }));
-    target.appendChild(el('path', { d:'M6.3 6.7 C6.1 7.4 6.1 8 6.3 8.7', stroke:'rgba(0,0,0,.22)', 'stroke-width':.6, fill:'none' }));
+
+    const clipId = 'windsock-clip-' + Math.random().toString(36).slice(2, 9);
+    const defs = el('defs', {});
+    const clip = el('clipPath', { id: clipId });
+    clip.appendChild(el('path', { d: bodyPath }));
+    defs.appendChild(clip);
+    target.appendChild(defs);
+
+    const bands = el('g', { 'clip-path': `url(#${clipId})` });
+    bands.appendChild(el('rect', { x:0, y:0, width:24, height:24, fill:'#fff' }));
+    // three tapering red bands, widest near the mouth, narrowest at the tip
+    bands.appendChild(el('rect', { x:14.8, y:0, width:3.2, height:24, fill:color }));
+    bands.appendChild(el('rect', { x:8.6, y:0, width:2.7, height:24, fill:color }));
+    bands.appendChild(el('rect', { x:1.2, y:0, width:3.6, height:24, fill:color }));
+    target.appendChild(bands);
+
+    target.appendChild(el('path', { d: bodyPath, fill:'none', stroke:color, 'stroke-width':.5, opacity:.6 }));
   }
   function drawArrowUp(target,color,double){
     icon(target, [
