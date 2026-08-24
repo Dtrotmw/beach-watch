@@ -243,6 +243,7 @@
   footer.foot .stale-line{ color:#8a5a00; font-weight:700; display:block; margin-top:2px; }
   @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) footer.foot .stale-line{ color:var(--warning); } }
   :root[data-theme="dark"] footer.foot .stale-line{ color:var(--warning); }
+  .copyright{ text-align:center; font-size:.7rem; color:var(--ink-muted); padding-top:10px; }
 
   /* ---------- demo/condition control strip ---------- */
   .demo-strip{
@@ -397,11 +398,12 @@
 
   <footer class="foot">
     <span>
-      Wind &amp; temperature: Northam Burrows station · Waves &amp; sea temperature: Channel Coastal Observatory, Bideford Bay buoy · Forecast: Met Office, Chivenor · Tide: Appledore predictions + live GNSS height (graph not shown yet in this build — see PUSH_URL step 5).
+      Wind &amp; temperature: Northam Burrows station · Waves &amp; sea temperature: Channel Coastal Observatory, Bideford Bay buoy · Forecast: Met Office, Chivenor · Tide: UKHO Appledore predictions + live GNSS height.
       <span class="stale-line" id="staleLine" hidden></span>
     </span>
     <span id="clock">–</span>
   </footer>
+  <div class="copyright">© 2026 David Inwood</div>
 </div>
 
 <script>
@@ -643,11 +645,16 @@
   }
   function drawWindsock(target, color){
     // Fixed orientation, not wind-direction-driven: pole on the right,
-    // sock streaming left/"east" per the brief, long and unmissable.
+    // sock streaming left/"east" per the brief, long, drooping and
+    // unmissable — mounting hoop + asymmetric tapered body + seam lines
+    // read as an actual windsock rather than a flat flag/pennant.
     target.innerHTML = "";
     target.setAttribute('viewBox','0 0 24 24');
     target.appendChild(el('line', { x1:18, y1:1.5, x2:18, y2:22.5, stroke:'var(--ink-muted)', 'stroke-width':1.6 }));
-    target.appendChild(el('path', { d:'M18 4.5 Q9 4.5 1.2 8 Q9 11.5 18 12.5 Z', fill:color }));
+    target.appendChild(el('ellipse', { cx:18, cy:7, rx:1.1, ry:3.6, fill:'none', stroke:'var(--ink-muted)', 'stroke-width':1 }));
+    target.appendChild(el('path', { d:'M18 3.6 C12 4 6 6.4 1.4 8 C6 9.4 12 10.1 18 10.4 Z', fill:color }));
+    target.appendChild(el('path', { d:'M11.3 5.1 C11 6.4 11 7.6 11.3 8.9', stroke:'rgba(0,0,0,.22)', 'stroke-width':.6, fill:'none' }));
+    target.appendChild(el('path', { d:'M6.3 6.7 C6.1 7.4 6.1 8 6.3 8.7', stroke:'rgba(0,0,0,.22)', 'stroke-width':.6, fill:'none' }));
   }
   function drawArrowUp(target,color,double){
     icon(target, [
@@ -829,9 +836,8 @@
       document.getElementById(prefix+'Pill').textContent = nowOk ? 'Open' : 'Closed';
       document.getElementById(prefix+'Pill').className = 'pill ' + (nowOk ? 'open' : 'closed');
       const msg = document.getElementById(prefix+'Msg');
-      if (!cross){ msg.textContent = nowOk ? 'Accessible for the rest of this window.' : 'Covered for the rest of this window.'; return; }
-      if (nowOk) msg.textContent = `Accessible until ${fmtDayTime(cross.h, nowH)}, then covers.`;
-      else msg.textContent = `Covered — clear again from ${fmtDayTime(cross.h, nowH)}.`;
+      if (!cross){ msg.textContent = `Beach ${nowOk ? '' : 'not '}accessible for the rest of this window.`; return; }
+      msg.textContent = `Beach ${nowOk ? '' : 'not '}accessible until about ${fmtDayTime(cross.h, nowH)}.`;
     }
     renderAccess('wh', whT);
     renderAccess('sandy', sandyT);
@@ -844,9 +850,9 @@
     document.getElementById(prefix+'Pill').className = 'pill ' + (open ? 'open' : 'closed');
     const msg = document.getElementById(prefix+'Msg');
     if (until){
-      msg.textContent = open ? `Accessible until ${until}, then covers.` : `Covered — clear again from ${until}.`;
+      msg.textContent = `Beach ${open ? '' : 'not '}accessible until about ${until}.`;
     } else {
-      msg.textContent = open ? 'Currently accessible.' : 'Currently covered.';
+      msg.textContent = `Beach ${open ? '' : 'not '}accessible.`;
     }
   }
   function parseTideExtrema(extrema){
