@@ -275,6 +275,12 @@
   .more-info summary::before{ content:'+'; font-weight:800; }
   .more-info[open] summary::before{ content:'–'; }
   .more-info p{ margin:8px 0 0; color:var(--ink-2); max-width:65ch; }
+  .more-info p.swash-estimate{
+    margin-top:12px; padding:10px 12px; border-radius:10px;
+    background:var(--surface-2); border:1px solid var(--hairline);
+    color:var(--ink-2); max-width:65ch;
+  }
+  .swash-estimate strong{ color:var(--ink); font-variant-numeric:tabular-nums; }
   .more-info ul{ margin:8px 0 0; padding-left:1.1em; max-width:65ch; color:var(--ink-2); display:flex; flex-direction:column; gap:6px; }
   .more-info li{ padding-left:2px; }
 
@@ -455,6 +461,7 @@
       <li>Water levels on the beach and hence beach access times are affected by wave heights. These will be estimated but this function is not yet implemented.</li>
     </ul>
     <p>The beach access times currently displayed are therefore rough estimates and should <strong>NOT</strong> be relied on yet.</p>
+    <p id="swashEstimate" class="swash-estimate" hidden></p>
   </details>
   <div class="copyright">Always check the lifeguard flags on the beach — this page is a guide, not a substitute.</div>
   <div class="copyright">© 2026 David Inwood</div>
@@ -1235,7 +1242,25 @@
     document.getElementById('tideFastCallout').style.display = 'none';
     document.getElementById('windStaleFlag').style.display = 'none';
     document.getElementById('staleLine').hidden = true;
+    renderSwashEstimate(null);
     document.getElementById('clock').textContent = 'Live feed unavailable';
+  }
+
+  // Swash/TWL briefing (v0.6) — an experimental, clearly-separate estimate
+  // shown only in the More Info panel, never affecting the main access
+  // cards (wh_open/sandy_open/wh_until/sandy_until are untouched). Hidden
+  // whenever the buoy feed is stale/dead (swash_data_ok) or either field
+  // is missing, rather than showing a stale or fabricated number.
+  function renderSwashEstimate(live){
+    const el = document.getElementById('swashEstimate');
+    if (!el) return;
+    const r2 = live ? Number(live.swash_r2_m) : NaN;
+    const whT = live ? live.swash_wh_until : '';
+    const sandyT = live ? live.swash_sandy_until : '';
+    const ok = live && live.swash_data_ok !== false && Number.isFinite(r2) && whT && sandyT;
+    if (!ok){ el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    el.innerHTML = `These are estimated to be <strong>${r2.toFixed(1)}m</strong> of wave swash right now — Westward Ho! slip affected until about <strong>${whT}</strong>, Sandymere ramp until about <strong>${sandyT}</strong>.`;
   }
 
   function renderLive(){
@@ -1252,6 +1277,7 @@
     renderForecast(viewScn);
     renderFootnote(viewScn);
     renderHazardZone(tide, wind, waves);
+    renderSwashEstimate(liveData);
     const ageMin = Math.max(0, Math.round((Date.now() - new Date(liveData.generated_at).getTime())/60000));
     document.getElementById('clock').textContent = liveError
       ? `Live feed unreachable — showing conditions from ${ageMin} min ago`
@@ -1272,6 +1298,7 @@
     renderForecast(scn);
     renderFootnote(scn);
     renderHazardZone(tide, wind, waves);
+    renderSwashEstimate(null);
     document.getElementById('clock').textContent = 'Example conditions: ' + SCENARIOS[current].label;
   }
 
