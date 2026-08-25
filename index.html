@@ -265,6 +265,16 @@
   :root[data-theme="dark"] footer.foot .stale-line{ color:var(--warning); }
   .copyright{ text-align:center; font-size:.7rem; color:var(--ink-muted); padding-top:10px; }
 
+  .more-info{ margin-top:8px; font-size:.74rem; color:var(--ink-muted); }
+  .more-info summary{
+    cursor:pointer; color:var(--accent); font-weight:700; list-style:none;
+    display:inline-flex; align-items:center; gap:4px; -webkit-tap-highlight-color:transparent;
+  }
+  .more-info summary::-webkit-details-marker{ display:none; }
+  .more-info summary::before{ content:'+'; font-weight:800; }
+  .more-info[open] summary::before{ content:'–'; }
+  .more-info p{ margin:8px 0 0; color:var(--ink-2); max-width:65ch; }
+
   /* ---------- demo/condition control strip ---------- */
   .demo-strip{
     background:#0c1114; color:#e7ece9; font-size:.78rem;
@@ -434,6 +444,10 @@
     </span>
     <span id="clock">–</span>
   </footer>
+  <details class="more-info">
+    <summary>More info</summary>
+    <p>More information about this page is coming soon.</p>
+  </details>
   <div class="copyright">Always check the lifeguard flags on the beach — this page is a guide, not a substitute.</div>
   <div class="copyright">© 2026 David Inwood</div>
 </div>
@@ -860,7 +874,7 @@
   // synthetic point series, live mode passes real gnss5mins.csv points.
   // Threshold lines are drawn from position only, never labelled with a
   // number, in both modes.
-  function drawTideGraph(pts, whT, sandyT, nowH){
+  function drawTideGraph(pts, whT, sandyT, nowH, displayHeight){
     const domainStart = pts[0].h, domainEnd = pts[pts.length-1].h;
     const yLo = -0.5, yHi = 8.5;
     // Bigger canvas + bottom margin than before: axis/label text roughly
@@ -956,7 +970,12 @@
     document.getElementById('tideDateTime').textContent =
       nowDate.toLocaleDateString([], { weekday:'short', day:'numeric', month:'short' }) + ' · ' +
       nowDate.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-    document.getElementById('tideNowVal').textContent = nowHeight.toFixed(1);
+    // The dot's position always comes from the curve fit through the real
+    // extrema (a fine approximation for the LINE). The displayed NUMBER
+    // prefers the true live-GNSS reading (displayHeight, live mode only)
+    // over that same interpolation, since that's what people actually
+    // read as "the height" — see tide_now_height in beach_watch_public.yaml.
+    document.getElementById('tideNowVal').textContent = (displayHeight != null ? displayHeight : nowHeight).toFixed(1);
     return nowHeight;
   }
 
@@ -1042,7 +1061,8 @@
     if (pts.length >= 2){
       document.getElementById('tideSvg').style.display = '';
       document.getElementById('tideNoData').hidden = true;
-      drawTideGraph(pts, live.wh_threshold, live.sandy_threshold, Date.now()/3600000);
+      const liveNowHeight = Number.isFinite(Number(live.tide_now_height)) ? Number(live.tide_now_height) : null;
+      drawTideGraph(pts, live.wh_threshold, live.sandy_threshold, Date.now()/3600000, liveNowHeight);
     } else {
       // Graph feed not populated yet — say so rather than silently
       // vanishing, which is exactly what made this confusing last time.
