@@ -65,6 +65,8 @@
   }
 
   *{ box-sizing:border-box; }
+  html{ font-size:17px; }
+  @media (max-width:520px){ html{ font-size:18px; } }
   html,body{ margin:0; padding:0; }
   body{
     background:var(--bg);
@@ -169,7 +171,15 @@
   .tide-no-data{ padding:44px 12px; text-align:center; color:var(--ink-muted); font-size:.85rem; }
 
   .stat-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .stat-row--2{ grid-template-columns:1fr 1fr; }
   @media (max-width:520px){ .stat-row{ grid-template-columns:1fr 1fr; } }
+
+  /* temperatures — sea/air/feels-like on one line, drawn from both panels */
+  .temp-strip{ display:flex; align-items:baseline; flex-wrap:wrap; gap:6px 12px; margin-top:16px; }
+  .temp-strip .lbl{ margin-right:2px; }
+  .temp-strip .item{ font-size:1rem; color:var(--ink-2); white-space:nowrap; }
+  .temp-strip .item strong{ font-variant-numeric:tabular-nums; font-weight:800; color:var(--ink); font-size:1.1rem; }
+  .temp-strip .sep{ color:var(--ink-muted); }
   .stat-tile{
     background:var(--surface); border:1px solid var(--hairline); border-radius:12px;
     padding:12px 12px 11px; display:flex; flex-direction:column; gap:6px; min-height:100px;
@@ -215,15 +225,24 @@
   @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .src-flag{ color:var(--warning); } }
   :root[data-theme="dark"] .src-flag{ color:var(--warning); }
 
-  .offshore-callout{
+  /* ---------- hazard zone — promoted, only-when-relevant cards ---------- */
+  .hazard-zone{ display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+  .hazard-callout{
     display:flex; align-items:center; gap:12px;
-    background:color-mix(in srgb, var(--critical) 14%, var(--surface));
-    border:1px solid color-mix(in srgb, var(--critical) 40%, var(--hairline));
-    border-radius:12px; padding:12px 14px;
+    border-radius:var(--radius); padding:12px 16px;
+    box-shadow:var(--shadow); border:1px solid var(--hairline);
   }
-  .offshore-callout svg{ width:120px; height:120px; flex:none; }
-  .offshore-callout strong{ display:block; font-size:.92rem; }
-  .offshore-callout span{ font-size:.8rem; color:var(--ink-2); }
+  .hazard-callout.level-critical{
+    background:color-mix(in srgb, var(--critical) 14%, var(--surface));
+    border-color:color-mix(in srgb, var(--critical) 40%, var(--hairline));
+  }
+  .hazard-callout.level-warning{
+    background:color-mix(in srgb, var(--warning) 16%, var(--surface));
+    border-color:color-mix(in srgb, var(--warning) 45%, var(--hairline));
+  }
+  .hazard-callout svg{ width:72px; height:72px; flex:none; }
+  .hazard-callout strong{ display:block; font-size:1rem; }
+  .hazard-callout span{ font-size:.86rem; color:var(--ink-2); }
 
   /* today's forecast card */
   .forecast-card{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
@@ -289,46 +308,45 @@
 <div class="shell">
   <div class="masthead">
     <h1>Beach Watch — <span class="place">Westward Ho!</span></h1>
-    <span class="badge">Example for Northam Town Council</span>
+    <span class="badge">Demo for Northam Town Council</span>
   </div>
 
-  <div id="banner" class="banner level-good">
+  <div id="banner" class="banner level-warning" hidden>
     <svg class="icon" id="bannerIcon" viewBox="0 0 24 24"></svg>
     <div class="text">
-      <h2 id="bannerHeadline">Conditions look normal</h2>
-      <p id="bannerSub">Always check the lifeguard flags on the beach — this page is a guide, not a substitute.</p>
+      <h2 id="bannerHeadline">Live data unavailable right now</h2>
+      <p id="bannerSub">Please check conditions in person and the lifeguard flags on the beach.</p>
     </div>
     <div class="chips" id="bannerChips"></div>
+  </div>
+
+  <div class="hazard-zone" id="hazardZone">
+    <div class="card hazard-callout level-critical" id="offshoreCallout" hidden>
+      <svg viewBox="0 0 24 24" id="windsockIcon"></svg>
+      <div>
+        <strong>Offshore wind — inflatables can be blown out to sea</strong>
+        <span id="offshoreSub">Wind is blowing from the land out over the water.</span>
+      </div>
+    </div>
+    <div class="card hazard-callout" id="wavesCallout" hidden>
+      <svg viewBox="0 0 48 32" id="wavesCalloutIcon"></svg>
+      <div>
+        <strong id="wavesCalloutHeadline">Big waves today</strong>
+        <span id="wavesCalloutSub">Take extra care in the water.</span>
+      </div>
+    </div>
+    <div class="card hazard-callout level-critical" id="tideFastCallout" hidden>
+      <svg viewBox="0 0 24 24" id="tideFastIcon"></svg>
+      <div>
+        <strong id="tideFastHeadline">Tide will rise very fast today</strong>
+        <span>Water can come in quickly around this time — keep an eye on your access route.</span>
+      </div>
+    </div>
   </div>
 
   <main class="panels">
     <section class="panel panel--sea">
       <h2><span class="dot"></span>Sea</h2>
-
-      <div class="card tide-card" id="tideCard">
-        <div class="hd">
-          <div class="eyebrow">Tide — Bideford Bay</div>
-          <div class="now-height"><span id="tideNowVal">–</span>m <small>right now</small></div>
-        </div>
-        <svg id="tideSvg" viewBox="0 0 800 260" preserveAspectRatio="none"></svg>
-        <div id="tideNoData" class="tide-no-data" hidden>Tide graph data isn't available yet.</div>
-      </div>
-
-      <div class="stat-row">
-        <div class="stat-tile" id="tideStateTile">
-          <div class="lbl">Tide is</div>
-          <div class="val"><svg id="tideRateIcon" viewBox="0 0 24 24"></svg><span id="tideRateLabel">–</span></div>
-        </div>
-        <div class="stat-tile" id="seaTempTile">
-          <div class="lbl">Sea temperature</div>
-          <div class="val"><span id="seaTempVal">–</span>°C</div>
-        </div>
-        <div class="stat-tile pictogram-tile" id="wavesTile">
-          <div class="lbl">Waves</div>
-          <svg class="hero-icon" id="waveIcon" viewBox="0 0 48 32"></svg>
-          <div class="val" id="waveLabel" style="font-size:1.05rem">–</div>
-        </div>
-      </div>
 
       <div class="access-row">
         <div class="access-card" id="accessWH">
@@ -340,18 +358,31 @@
           <div class="msg" id="sandyMsg">–</div>
         </div>
       </div>
+
+      <div class="card tide-card" id="tideCard">
+        <div class="hd">
+          <div class="eyebrow" id="tideDateTime">–</div>
+          <div class="now-height">Tide is <span id="tideNowVal">–</span>m</div>
+        </div>
+        <svg id="tideSvg" viewBox="0 0 800 260" preserveAspectRatio="none"></svg>
+        <div id="tideNoData" class="tide-no-data" hidden>Tide graph data isn't available yet.</div>
+      </div>
+
+      <div class="stat-row stat-row--2">
+        <div class="stat-tile" id="tideStateTile">
+          <div class="lbl">Tide is</div>
+          <div class="val"><svg id="tideRateIcon" viewBox="0 0 24 24"></svg><span id="tideRateLabel">–</span></div>
+        </div>
+        <div class="stat-tile pictogram-tile" id="wavesTile">
+          <div class="lbl">Waves</div>
+          <svg class="hero-icon" id="waveIcon" viewBox="0 0 48 32"></svg>
+          <div class="val" id="waveLabel" style="font-size:1.05rem">–</div>
+        </div>
+      </div>
     </section>
 
     <section class="panel panel--weather">
       <h2><span class="dot"></span>Weather</h2>
-
-      <div class="card offshore-callout" id="offshoreCallout" hidden>
-        <svg viewBox="0 0 24 24" id="windsockIcon"></svg>
-        <div>
-          <strong>Offshore wind — inflatables can be blown out to sea</strong>
-          <span id="offshoreSub">Wind is blowing from the land out over the water.</span>
-        </div>
-      </div>
 
       <div class="card wind-hero">
         <svg class="rose" id="windRose" viewBox="0 0 120 120"></svg>
@@ -363,12 +394,7 @@
         </div>
       </div>
 
-      <div class="stat-row">
-        <div class="stat-tile" id="feelsTile">
-          <div class="lbl">Feels like</div>
-          <div class="val"><span id="feelsVal">–</span>°C</div>
-          <div class="sub" id="airTempSub">–</div>
-        </div>
+      <div class="stat-row stat-row--2">
         <div class="stat-tile" id="humidityTile">
           <div class="lbl">Humidity</div>
           <div class="val"><span id="humidityVal">–</span>%</div>
@@ -395,13 +421,23 @@
     </section>
   </main>
 
+  <div class="card temp-strip">
+    <span class="lbl eyebrow">Temperatures</span>
+    <span class="item">Sea <strong id="seaTempVal">–</strong>°C</span>
+    <span class="sep">·</span>
+    <span class="item">Air <strong id="airTempVal">–</strong>°C</span>
+    <span class="sep">·</span>
+    <span class="item">Feels like <strong id="feelsVal">–</strong>°C</span>
+  </div>
+
   <footer class="foot">
     <span>
-      Wind &amp; temperature: Northam Burrows station · Waves &amp; sea temperature: Channel Coastal Observatory, Bideford Bay buoy · Forecast: Met Office, Chivenor · Tide: UKHO Appledore predictions + live GNSS height.
+      Wind &amp; temperature: Northam Burrows station · Waves &amp; sea temperature: Channel Coastal Observatory, Bideford Bay buoy · Forecast: Met Office, Chivenor · Tide: UKHO Appledore predictions + live GNSS height, with thanks to the National Oceanographic Centre.
       <span class="stale-line" id="staleLine" hidden></span>
     </span>
     <span id="clock">–</span>
   </footer>
+  <div class="copyright">Always check the lifeguard flags on the beach — this page is a guide, not a substitute.</div>
   <div class="copyright">© 2026 David Inwood</div>
 </div>
 
@@ -509,6 +545,18 @@
       }
     }
     return out;
+  }
+  // First upcoming point (after nowH) where the curve's rate of rise
+  // clears the "very fast" threshold — drives the predictive headline
+  // ("will rise very fast around HH:MM today") rather than headlining the
+  // ephemeral tide_state word itself.
+  function findFastRiseTime(pts, nowH, threshold){
+    for (let i = 1; i < pts.length; i++){
+      if (pts[i].h < nowH) continue;
+      const rate = (pts[i].height - pts[i-1].height) / (pts[i].h - pts[i-1].h);
+      if (rate >= threshold) return pts[i].h;
+    }
+    return null;
   }
   function findCrossing(pts, threshold){
     for (let i = 1; i < pts.length; i++){
@@ -795,6 +843,22 @@
     return pts[pts.length-1].height;
   }
 
+  // Small horizon+sun+direction-chevron glyph for the sunrise/sunset ticks
+  // below the tide graph — replaces the plain ↑/↓ characters.
+  function appendSunGlyph(svg, cx, cy, rising){
+    const r = 5;
+    svg.appendChild(el('line', { x1:cx-8, x2:cx+8, y1:cy, y2:cy, stroke:'var(--ink-muted)', 'stroke-width':1.4 }));
+    svg.appendChild(el('path', { d:`M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}`, fill:'none', stroke:'var(--ink-muted)', 'stroke-width':1.4 }));
+    [-1,0,1].forEach(i=>{
+      const rx = cx + i*4;
+      svg.appendChild(el('line', { x1:rx, x2:rx, y1:cy-r-4, y2:cy-r-1.5, stroke:'var(--ink-muted)', 'stroke-width':1.3, 'stroke-linecap':'round' }));
+    });
+    const d = rising
+      ? `M ${cx-3} ${cy-r-4} L ${cx} ${cy-r-8} L ${cx+3} ${cy-r-4}`
+      : `M ${cx-3} ${cy-r-8} L ${cx} ${cy-r-4} L ${cx+3} ${cy-r-8}`;
+    svg.appendChild(el('path', { d, fill:'none', stroke:'var(--ink-muted)', 'stroke-width':1.3, 'stroke-linecap':'round', 'stroke-linejoin':'round' }));
+  }
+
   // Shared SVG drawing for both modes — example-conditions mode passes a
   // synthetic point series, live mode passes real gnss5mins.csv points.
   // Threshold lines are drawn from position only, never labelled with a
@@ -865,9 +929,10 @@
     sunEvents.forEach(ev=>{
       if (ev.h < domainStart || ev.h > domainEnd) return;
       const ex = x(ev.h);
-      svg.appendChild(el('line', { x1:ex, x2:ex, y1:plotBottom, y2:plotBottom+5, stroke:'var(--ink-muted)', 'stroke-width':1 }));
-      const lbl = el('text', { x:ex, y:plotBottom+19, 'text-anchor':'middle', 'font-size':14, fill:'var(--ink-muted)' });
-      lbl.textContent = (ev.type === 'rise' ? '↑' : '↓') + fmtTime(ev.h);
+      svg.appendChild(el('line', { x1:ex, x2:ex, y1:plotBottom, y2:plotBottom+4, stroke:'var(--ink-muted)', 'stroke-width':1 }));
+      appendSunGlyph(svg, ex, plotBottom+13, ev.type === 'rise');
+      const lbl = el('text', { x:ex, y:plotBottom+34, 'text-anchor':'middle', 'font-size':21, fill:'var(--ink-muted)' });
+      lbl.textContent = fmtTime(ev.h);
       svg.appendChild(lbl);
     });
     const tomorrowMidnight = new Date((Math.floor(nowH/24)+1)*24*3600000);
@@ -893,6 +958,10 @@
     nowTime.textContent = new Date(nowH*3600000).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
     svg.appendChild(nowTime);
 
+    const nowDate = new Date(nowH * 3600000);
+    document.getElementById('tideDateTime').textContent =
+      nowDate.toLocaleDateString([], { weekday:'short', day:'numeric', month:'short' }) + ' · ' +
+      nowDate.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
     document.getElementById('tideNowVal').textContent = nowHeight.toFixed(1);
     return nowHeight;
   }
@@ -928,7 +997,10 @@
     renderAccess('wh', whT);
     renderAccess('sandy', sandyT);
 
-    return { state };
+    const fastRiseH = findFastRiseTime(pts, nowH, 2.0);
+    const fastRiseTime = fastRiseH != null ? fmtTime(fastRiseH) : null;
+
+    return { state, fastRiseTime };
   }
 
   function renderAccessLive(prefix, open, until){
@@ -987,7 +1059,7 @@
     applyTideStateTile(live.tide_state);
     renderAccessLive('wh', live.wh_open, live.wh_until);
     renderAccessLive('sandy', live.sandy_open, live.sandy_until);
-    return { state: live.tide_state };
+    return { state: live.tide_state, fastRiseTime: live.tide_fast_rise_time || null };
   }
 
   function renderWind(scn){
@@ -1012,15 +1084,8 @@
 
     drawWindRose(document.getElementById('windRose'), scn.dirDeg, scn.windKn, offshore);
 
-    const callout = document.getElementById('offshoreCallout');
-    callout.style.display = offshore ? 'flex' : 'none';
-    if (offshore){
-      drawWindsock(document.getElementById('windsockIcon'), 'var(--critical)');
-      document.getElementById('offshoreSub').textContent = `Wind from the ${dirLabel}.`;
-    }
-
     document.getElementById('feelsVal').textContent = Math.round(scn.feelsLike);
-    document.getElementById('airTempSub').textContent = `Air ${Math.round(scn.airTemp)}°C`;
+    document.getElementById('airTempVal').textContent = Math.round(scn.airTemp);
 
     document.getElementById('humidityVal').textContent = Math.round(scn.humidity);
     const trendWord = { rising:'Pressure rising', falling:'Pressure falling', steady:'Pressure steady' }[scn.pressureTrend];
@@ -1058,7 +1123,7 @@
     const lbl = waveLabelFor(scn.waveHeightM);
     document.getElementById('waveLabel').textContent = lbl;
     document.getElementById('seaTempVal').textContent = Math.round(scn.seaTemp);
-    return { waveLabel: lbl };
+    return { waveLabel: lbl, waveHeightM: scn.waveHeightM };
   }
 
   function renderForecast(scn){
@@ -1081,58 +1146,53 @@
     line.textContent = 'Visitor centre station currently unavailable — wind and temperature shown are the nearest RNLI reading instead.';
   }
 
-  function renderBanner(tide, wind, waves){
-    // Banner itself is binary — safe / not safe. Individual hazard chips
-    // below still carry their own warning/critical colour for nuance, but
-    // there's no "kind of okay" middle-tier banner message.
-    const hazards = [];
-    if (wind.offshore) hazards.push({ level:'critical', label:'Offshore wind' });
-    if (waves.waveLabel === 'Very rough' || waves.waveLabel === 'High') hazards.push({ level:'critical', label:'Big waves' });
-    else if (waves.waveLabel === 'Rough') hazards.push({ level:'warning', label:'Rough sea' });
-    if (tide.state === 'Rising very fast') hazards.push({ level:'critical', label:'Tide rising very fast' });
-    else if (tide.state === 'Rising fast') hazards.push({ level:'warning', label:'Tide rising fast' });
-
-    const anyHazard = hazards.length > 0;
-
-    const banner = document.getElementById('banner');
-    banner.className = 'banner level-' + (anyHazard ? 'critical' : 'good');
-    const icon_ = document.getElementById('bannerIcon');
-    const headline = document.getElementById('bannerHeadline');
-    const sub = document.getElementById('bannerSub');
-
-    if (anyHazard){
-      drawWarnTriangle(icon_, 'var(--critical)');
-      headline.textContent = 'Take care — hazardous conditions';
-      sub.textContent = 'One or more conditions today can catch people out. Check the details below before going in the water.';
-    } else {
-      drawTick(icon_, true);
-      headline.textContent = 'Conditions look normal';
-      sub.textContent = 'Always check the lifeguard flags on the beach — this page is a guide, not a substitute.';
+  // Replaces the old binary safe/not-safe banner: instead of a permanent
+  // "conditions look normal" box, specific hazard cards are promoted to
+  // the top of the page only when they actually apply — offshore wind
+  // first, then hazardous waves, then a predicted fast-rising tide. When
+  // none apply, the zone is simply empty; nothing to declutter past that.
+  function renderHazardZone(tide, wind, waves){
+    const offCard = document.getElementById('offshoreCallout');
+    offCard.style.display = wind.offshore ? 'flex' : 'none';
+    if (wind.offshore){
+      drawWindsock(document.getElementById('windsockIcon'), 'var(--critical)');
+      document.getElementById('offshoreSub').textContent = `Wind from the ${wind.dirLabel}.`;
     }
 
-    const chips = document.getElementById('bannerChips');
-    chips.innerHTML = '';
-    hazards.forEach(h=>{
-      const chip = document.createElement('div');
-      chip.className = 'hazard-chip c-' + h.level;
-      const svg = el('svg', { viewBox:'0 0 24 24' });
-      chip.appendChild(svg);
-      drawWarnTriangle(svg, h.level==='critical' ? 'var(--critical)' : 'var(--warning)');
-      const span = document.createElement('span'); span.textContent = h.label;
-      chip.appendChild(span);
-      chips.appendChild(chip);
-    });
+    const waveLevel = (waves.waveLabel === 'Very rough' || waves.waveLabel === 'High') ? 'critical'
+      : waves.waveLabel === 'Rough' ? 'warning' : null;
+    const waveCard = document.getElementById('wavesCallout');
+    waveCard.style.display = waveLevel ? 'flex' : 'none';
+    if (waveLevel){
+      waveCard.className = 'card hazard-callout level-' + waveLevel;
+      drawWaveIcon(document.getElementById('wavesCalloutIcon'), waves.waveHeightM);
+      document.getElementById('wavesCalloutHeadline').textContent = `${waves.waveLabel} sea — take extra care`;
+      document.getElementById('wavesCalloutSub').textContent =
+        `Wave height about ${waves.waveHeightM.toFixed(1)}m. Take extra care, especially with children and inflatables.`;
+    }
+
+    const tideCard = document.getElementById('tideFastCallout');
+    tideCard.style.display = tide.fastRiseTime ? 'flex' : 'none';
+    if (tide.fastRiseTime){
+      drawArrowUp(document.getElementById('tideFastIcon'), 'var(--critical)', true);
+      document.getElementById('tideFastHeadline').textContent = `Tide will rise very fast around ${tide.fastRiseTime} today`;
+    }
+  }
+
+  function hideDataBanner(){
+    document.getElementById('banner').style.display = 'none';
   }
 
   function renderLiveUnavailable(){
     document.getElementById('tideCard').style.display = 'none';
     const banner = document.getElementById('banner');
+    banner.style.display = 'flex';
     banner.className = 'banner level-warning';
     drawWarnTriangle(document.getElementById('bannerIcon'), 'var(--warning)');
     document.getElementById('bannerHeadline').textContent = 'Live data unavailable right now';
     document.getElementById('bannerSub').textContent = 'Please check conditions in person and the lifeguard flags on the beach.';
     document.getElementById('bannerChips').innerHTML = '';
-    ['windMph','windDesc','windGust','feelsVal','humidityVal','seaTempVal','waveLabel','forecastText','pressureSub','airTempSub','rainSub'].forEach(id=>{
+    ['windMph','windDesc','windGust','feelsVal','humidityVal','seaTempVal','airTempVal','waveLabel','forecastText','pressureSub','rainSub'].forEach(id=>{
       const e = document.getElementById(id); if (e) e.textContent = '–';
     });
     document.getElementById('rainVal').textContent = '–';
@@ -1149,6 +1209,8 @@
     document.getElementById('whMsg').textContent = 'Data unavailable.';
     document.getElementById('sandyMsg').textContent = 'Data unavailable.';
     document.getElementById('offshoreCallout').style.display = 'none';
+    document.getElementById('wavesCallout').style.display = 'none';
+    document.getElementById('tideFastCallout').style.display = 'none';
     document.getElementById('windStaleFlag').style.display = 'none';
     document.getElementById('staleLine').hidden = true;
     document.getElementById('clock').textContent = 'Live feed unavailable';
@@ -1159,6 +1221,7 @@
       renderLiveUnavailable();
       return;
     }
+    hideDataBanner();
     const viewScn = liveToScn(liveData);
     const tide = renderTideLive(liveData);
     const wind = renderWind(viewScn);
@@ -1166,7 +1229,7 @@
     const waves = renderWaves(viewScn);
     renderForecast(viewScn);
     renderFootnote(viewScn);
-    renderBanner(tide, wind, waves);
+    renderHazardZone(tide, wind, waves);
     const ageMin = Math.max(0, Math.round((Date.now() - new Date(liveData.generated_at).getTime())/60000));
     document.getElementById('clock').textContent = liveError
       ? `Live feed unreachable — showing conditions from ${ageMin} min ago`
@@ -1178,6 +1241,7 @@
       renderLive();
       return;
     }
+    hideDataBanner();
     const scn = SCENARIOS[current];
     const tide = renderTide(scn);
     const wind = renderWind(scn);
@@ -1185,7 +1249,7 @@
     const waves = renderWaves(scn);
     renderForecast(scn);
     renderFootnote(scn);
-    renderBanner(tide, wind, waves);
+    renderHazardZone(tide, wind, waves);
     document.getElementById('clock').textContent = 'Example conditions: ' + SCENARIOS[current].label;
   }
 
