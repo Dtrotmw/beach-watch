@@ -1251,16 +1251,30 @@
   // cards (wh_open/sandy_open/wh_until/sandy_until are untouched). Hidden
   // whenever the buoy feed is stale/dead (swash_data_ok) or either field
   // is missing, rather than showing a stale or fabricated number.
+  // Per-ramp sentence, each using THAT ramp's own EurOtop Ru2% (the
+  // number actually driving its time) rather than the unrelated Stockdon
+  // open-beach swash figure, and picking "accessible"/"not accessible"
+  // from that ramp's own swash-adjusted open state — a ramp can already
+  // be wave-closed right now even while the plain calm-day figure still
+  // shows it open, in which case the time shown is a REOPEN time, not a
+  // delayed close, and needs the opposite wording.
+  function swashRampClause(name, open, until, ru2){
+    const word = open ? 'accessible' : 'not accessible';
+    return `${name} is estimated ${word} until about <strong>${until}</strong> (+<strong>${ru2.toFixed(1)}m</strong> wave run-up)`;
+  }
   function renderSwashEstimate(live){
     const el = document.getElementById('swashEstimate');
     if (!el) return;
-    const r2 = live ? Number(live.swash_r2_m) : NaN;
-    const whT = live ? live.swash_wh_until : '';
-    const sandyT = live ? live.swash_sandy_until : '';
-    const ok = live && live.swash_data_ok !== false && Number.isFinite(r2) && whT && sandyT;
+    if (!live || live.swash_data_ok === false){ el.hidden = true; el.innerHTML = ''; return; }
+    const whT = live.swash_wh_until, sandyT = live.swash_sandy_until;
+    const whRu2 = Number(live.wh_ramp_ru2_m), sandyRu2 = Number(live.sandy_ramp_ru2_m);
+    const ok = whT && sandyT && Number.isFinite(whRu2) && Number.isFinite(sandyRu2)
+      && typeof live.swash_wh_open === 'boolean' && typeof live.swash_sandy_open === 'boolean';
     if (!ok){ el.hidden = true; el.innerHTML = ''; return; }
     el.hidden = false;
-    el.innerHTML = `These are estimated to be <strong>${r2.toFixed(1)}m</strong> of wave swash right now — Westward Ho! slip affected until about <strong>${whT}</strong>, Sandymere ramp until about <strong>${sandyT}</strong>.`;
+    el.innerHTML = 'Including estimated wave run-up: '
+      + swashRampClause('Westward Ho! slip', live.swash_wh_open, whT, whRu2) + '; '
+      + swashRampClause('Sandymere ramp', live.swash_sandy_open, sandyT, sandyRu2) + '.';
   }
 
   function renderLive(){
