@@ -258,8 +258,9 @@
 
   footer.foot{
     margin-top:20px; padding-top:14px; border-top:1px solid var(--hairline);
-    font-size:.74rem; color:var(--ink-muted); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    font-size:.74rem; color:var(--ink-muted); display:flex; gap:12px; flex-wrap:wrap;
   }
+  footer.foot #clock{ margin-left:auto; }
   footer.foot .stale-line{ color:#8a5a00; font-weight:700; display:block; margin-top:2px; }
   @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) footer.foot .stale-line{ color:var(--warning); } }
   :root[data-theme="dark"] footer.foot .stale-line{ color:var(--warning); }
@@ -274,6 +275,8 @@
   .more-info summary::before{ content:'+'; font-weight:800; }
   .more-info[open] summary::before{ content:'–'; }
   .more-info p{ margin:8px 0 0; color:var(--ink-2); max-width:65ch; }
+  .more-info ul{ margin:8px 0 0; padding-left:1.1em; max-width:65ch; color:var(--ink-2); display:flex; flex-direction:column; gap:6px; }
+  .more-info li{ padding-left:2px; }
 
   /* ---------- demo/condition control strip ---------- */
   .demo-strip{
@@ -438,15 +441,20 @@
   </main>
 
   <footer class="foot">
-    <span>
-      Wind &amp; temperature: Northam Burrows station · Waves &amp; sea temperature: Channel Coastal Observatory, Bideford Bay buoy · Forecast: Met Office, Chivenor · Tide: UKHO Appledore predictions + live GNSS height, with thanks to the National Oceanographic Centre.
-      <span class="stale-line" id="staleLine" hidden></span>
-    </span>
+    <span class="stale-line" id="staleLine" hidden></span>
     <span id="clock">–</span>
   </footer>
   <details class="more-info">
     <summary>More info</summary>
-    <p>More information about this page is coming soon.</p>
+    <p>This dashboard is a demonstration for Northam Town Council and Northam Burrows Visitor Centre to show what can be done with data from their weather station. It uses a variety of sources:</p>
+    <ul>
+      <li>The Visitor Centre data is used wherever available, but rather than show "not available" it will fall back to data from Appledore RNLI station.</li>
+      <li>Tide times are ADMIRALTY® data: © Crown copyright and database right.</li>
+      <li>Tide heights, now and predicted, are from an instrument and data supplied by the National Oceanographic Centre. It overlooks the water from Bideford Bar to Instow and uses satellite reflections (GNSS-IR) to measure the actual water levels. It therefore takes into account any pressure and wind effects. Although this is not exactly the same as Westward Ho! beach, there is nowhere nearer and the differences will be small.</li>
+      <li>Sea conditions are from the Channel Coastal Observatory, Bideford Bay buoy located a few hundred metres off the beach. The temperature will normally be lower than at the water's edge.</li>
+      <li>Water levels on the beach and hence beach access times are affected by wave heights. These will be estimated but this function is not yet implemented.</li>
+    </ul>
+    <p>The beach access times currently displayed are therefore rough estimates and should <strong>NOT</strong> be relied on yet.</p>
   </details>
   <div class="copyright">Always check the lifeguard flags on the beach — this page is a guide, not a substitute.</div>
   <div class="copyright">© 2026 David Inwood</div>
