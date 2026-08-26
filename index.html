@@ -760,22 +760,38 @@
   function drawDrop(target,color){
     icon(target, [{ tag:'path', d:'M13 3c4 5.5 6.5 9 6.5 12a6.5 6.5 0 1 1-13 0C6.5 12 9 8.5 13 3Z', fill:color }], '0 0 26 26');
   }
+  // Style lifted from the estuary/RNLI dashboard's own wave pictograms
+  // (waves1s/waves2a/waves3r.png): plain rounded-stroke wave lines, no
+  // background swatch — calm reads as a couple of easy, even crests;
+  // rough reads as more, tighter, less even ones. Colour still follows
+  // the same wgScheme severity scale used everywhere else on this page.
   function drawWaveIcon(target, heightM){
-    const bg = wgScheme(heightM, 'waves');
+    const color = wgScheme(heightM, 'waves');
     target.innerHTML = "";
     target.setAttribute('viewBox','0 0 48 32');
-    target.appendChild(el('rect', { x:0,y:0,width:48,height:32, rx:8, fill:bg }));
-    const amp = 2 + Math.min(heightM,4)*2.6;
-    const rough = heightM > 1.2;
-    [12,19,26].forEach((y,i)=>{
-      const d = `M0 ${y} C 6 ${y-amp} 10 ${y+amp} 16 ${y} S 26 ${y+amp} 32 ${y} S 42 ${y+amp} 48 ${y}`;
-      target.appendChild(el('path', { d, fill:'none', stroke: textOn(bg), 'stroke-width': rough ? 2.4 : 1.8, 'stroke-linecap':'round', opacity: 0.55 + i*0.15 }));
-    });
-    if (rough){
-      for (let x=4; x<48; x+=9){
-        target.appendChild(el('path', { d:`M${x} 8 l3 -2.4`, stroke: textOn(bg), 'stroke-width':1.6, 'stroke-linecap':'round' }));
+    const t = Math.max(0, Math.min(1, heightM / 2.5)); // 0 calm .. 1 rough+
+    const humps = 2 + Math.round(t * 2); // 2 (calm) .. 4 (rough) crests
+    const seg = 48 / humps;
+    function wavePath(yBase, seed){
+      let d = `M0 ${yBase}`;
+      for (let i = 0; i < humps; i++){
+        const x0 = i * seg, x1 = x0 + seg;
+        const dir = i % 2 === 0 ? -1 : 1;
+        const wobble = 1 + Math.sin(i * 2.3 + seed) * t * 0.55;
+        const amp = (3 + t * 3.2) * wobble;
+        const cy = (yBase + dir * amp).toFixed(1);
+        const c1x = (x0 + seg / 3).toFixed(1), c2x = (x0 + seg * 2 / 3).toFixed(1);
+        d += ` C ${c1x} ${cy} ${c2x} ${cy} ${x1.toFixed(1)} ${yBase}`;
       }
+      return d;
     }
+    [11, 22].forEach((yBase, i) => {
+      target.appendChild(el('path', {
+        d: wavePath(yBase, i * 2.7),
+        fill: 'none', stroke: color, 'stroke-width': 3.6,
+        'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+      }));
+    });
   }
   function drawWindRose(target, dirDeg, speedKn, offshore){
     target.innerHTML = "";
@@ -1273,7 +1289,20 @@
   function renderSwashEstimate(live){
     const el = document.getElementById('swashEstimate');
     if (!el) return;
-    if (!live || live.swash_data_ok === false){ el.hidden = true; el.innerHTML = ''; return; }
+    // No live data at all (demo mode, or the live feed itself is down) —
+    // this feature doesn't apply here, say nothing.
+    if (!live){ el.hidden = true; el.innerHTML = ''; return; }
+    // Live data IS flowing, but specifically the wave sub-feed is stale/
+    // dead — fall back to what the page already shows elsewhere (the
+    // plain, non-wave-corrected access times above are untouched
+    // regardless) and say so explicitly, rather than the panel silently
+    // vanishing, which reads as "this feature doesn't exist" rather than
+    // "temporarily unavailable".
+    if (live.swash_data_ok === false){
+      el.hidden = false;
+      el.innerHTML = 'Wave run-up data is currently unavailable (the wave buoy feed hasn’t updated recently) — the access times above don’t yet include a wave correction.';
+      return;
+    }
     const whT = live.swash_wh_until, sandyT = live.swash_sandy_until;
     const whRu2 = Number(live.wh_ramp_ru2_m);
     const ok = whT && sandyT && Number.isFinite(whRu2)
