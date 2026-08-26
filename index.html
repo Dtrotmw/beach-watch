@@ -395,6 +395,7 @@
           <div class="lbl">Waves</div>
           <svg class="hero-icon" id="waveIcon" viewBox="0 0 48 32"></svg>
           <div class="val" id="waveLabel" style="font-size:1.05rem">–</div>
+          <div class="src-flag" id="waveStaleFlag">Buoy data delayed</div>
         </div>
       </div>
     </section>
@@ -683,6 +684,7 @@
       pressureTrend: live.pressure_trend || 'steady', // not yet in the HA payload — defaults to steady
       rainToday: live.rain_today, rainNow: live.rain_now, lastRainHrs: live.last_rain_hrs,
       seaTemp: live.sea_temp, waveHeightM: live.wave_height_m,
+      waveStation: live.wave_data_ok === false ? 'stale' : 'ok',
       condition: live.condition, kind: kindFromCondition(live.condition),
       pop: live.pop, uvIndex: live.uv_index, forecastOk: live.forecast_ok !== false,
       station: live.station_ok ? 'ok' : 'stale'
@@ -762,23 +764,33 @@
   }
   // Style lifted from the estuary/RNLI dashboard's own wave pictograms
   // (waves1s/waves2a/waves3r.png): plain rounded-stroke wave lines, no
-  // background swatch — calm reads as a couple of easy, even crests;
-  // rough reads as more, tighter, less even ones. Colour still follows
-  // the same wgScheme severity scale used everywhere else on this page.
+  // background swatch. THREE discrete severity tiers (colour + shape both
+  // keyed to them), not a continuous gradient — a smoothly-interpolated
+  // colour washes out the difference between "big" and "very big" right
+  // where it matters most. Breakpoints match waveLabelFor() exactly so
+  // the icon can never disagree with the text label sitting next to it:
+  // Calm/Slight = calm accent teal, Moderate/Rough = warning amber,
+  // Very rough/High = the same "angry" critical red as every other
+  // hazard indicator on this page (and the estuary dashboard's own
+  // waves3r icon) — not a fourth tier past "very rough", since the
+  // dashboard's own top tier already reads as the maximum.
   function drawWaveIcon(target, heightM){
-    const color = wgScheme(heightM, 'waves');
     target.innerHTML = "";
     target.setAttribute('viewBox','0 0 48 32');
-    const t = Math.max(0, Math.min(1, heightM / 2.5)); // 0 calm .. 1 rough+
-    const humps = 2 + Math.round(t * 2); // 2 (calm) .. 4 (rough) crests
+    let tier, color;
+    if (heightM < 0.6){ tier = 0; color = 'var(--accent)'; }
+    else if (heightM < 2.5){ tier = 1; color = 'var(--warning)'; }
+    else { tier = 2; color = 'var(--critical)'; }
+    const humps = 2 + tier;           // 2 / 3 / 4 crests
+    const wobbleAmt = tier * 0.5;     // 0 / .5 / 1 — crest-height irregularity
     const seg = 48 / humps;
     function wavePath(yBase, seed){
       let d = `M0 ${yBase}`;
       for (let i = 0; i < humps; i++){
         const x0 = i * seg, x1 = x0 + seg;
         const dir = i % 2 === 0 ? -1 : 1;
-        const wobble = 1 + Math.sin(i * 2.3 + seed) * t * 0.55;
-        const amp = (3 + t * 3.2) * wobble;
+        const wobble = 1 + Math.sin(i * 2.3 + seed) * wobbleAmt;
+        const amp = (3 + tier * 1.6) * wobble;
         const cy = (yBase + dir * amp).toFixed(1);
         const c1x = (x0 + seg / 3).toFixed(1), c2x = (x0 + seg * 2 / 3).toFixed(1);
         d += ` C ${c1x} ${cy} ${c2x} ${cy} ${x1.toFixed(1)} ${yBase}`;
@@ -1168,6 +1180,9 @@
     const lbl = waveLabelFor(scn.waveHeightM);
     document.getElementById('waveLabel').textContent = lbl;
     document.getElementById('seaTempVal').textContent = Math.round(scn.seaTemp);
+    // scn.waveStation only exists in live mode (via liveToScn) — demo
+    // scenarios have no equivalent concept, so this stays hidden for them.
+    document.getElementById('waveStaleFlag').style.display = scn.waveStation === 'stale' ? 'block' : 'none';
     return { waveLabel: lbl, waveHeightM: scn.waveHeightM };
   }
 
@@ -1257,6 +1272,7 @@
     document.getElementById('wavesCallout').style.display = 'none';
     document.getElementById('tideFastCallout').style.display = 'none';
     document.getElementById('windStaleFlag').style.display = 'none';
+    document.getElementById('waveStaleFlag').style.display = 'none';
     document.getElementById('staleLine').hidden = true;
     renderSwashEstimate(null);
     document.getElementById('clock').textContent = 'Live feed unavailable';
