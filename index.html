@@ -967,7 +967,26 @@
     // and the extra bottom band holds the now-time, sunrise/sunset and
     // next-day-name annotations.
     const W = 800, H = 300, padL = 8, padR = 8, padT = 22, padB = 62;
-    const x = h => padL + (h - domainStart) / (domainEnd - domainStart) * (W - padL - padR);
+    // 2026-09-03: time-axis compression, per David — plain linear still
+    // looked wrong to the eye even with correct start/end anchors. Split
+    // the domain in half BY TIME (domainMid); the first half gets 2/3 of
+    // the plot width, the second half only 1/3 — i.e. the second half is
+    // drawn at half the pixel-density of the first (a 2:1 compression
+    // ratio), so the near-term stays large/legible while the far-term
+    // still fits without growing the canvas. Piecewise-linear, not a
+    // smooth curve — every x(h) caller below (gridlines, threshold lines,
+    // the tidal curve itself, extrema dots, sun ticks, the "now" marker)
+    // automatically picks this up since they all just call x(hour).
+    const domainMid = (domainStart + domainEnd) / 2;
+    const plotW = W - padL - padR;
+    const firstHalfW = plotW * (2/3);
+    const secondHalfW = plotW * (1/3);
+    const x = h => {
+      if (h <= domainMid){
+        return padL + (h - domainStart) / (domainMid - domainStart) * firstHalfW;
+      }
+      return padL + firstHalfW + (h - domainMid) / (domainEnd - domainMid) * secondHalfW;
+    };
     const y = v => padT + (1 - (v - yLo)/(yHi - yLo)) * (H - padT - padB);
     const plotBottom = H - padB;
 
@@ -1013,10 +1032,18 @@
     svg.appendChild(el('path', { d:areaD, fill:'var(--accent-soft)', opacity:.55 }));
     svg.appendChild(el('path', { d, fill:'none', stroke:'var(--accent)', 'stroke-width':2.5, 'stroke-linejoin':'round' }));
 
-    findExtrema(pts).forEach(ex=>{
+    const extremaList = findExtrema(pts);
+    extremaList.forEach((ex, idx)=>{
       const cx = x(ex.h), cy = y(ex.height);
       svg.appendChild(el('circle', { cx, cy, r:4, fill:'var(--surface)', stroke:'var(--accent)', 'stroke-width':2 }));
-      const t = el('text', { x:cx, y: ex.kind==='high'? cy-16 : cy+27, 'text-anchor':'middle', 'font-size':20, 'font-weight':700, fill:'var(--ink-2)' });
+      // 2026-09-03: the domain's first/last points are now real extrema
+      // too (see findExtrema's own note above) and sit right at the
+      // canvas edge — a center-anchored label there runs half off the
+      // SVG and gets clipped. Anchor the very first/last labels to their
+      // own side instead so they stay fully on-canvas; interior labels
+      // are unaffected.
+      const anchor = idx === 0 ? 'start' : (idx === extremaList.length - 1 ? 'end' : 'middle');
+      const t = el('text', { x:cx, y: ex.kind==='high'? cy-16 : cy+27, 'text-anchor':anchor, 'font-size':20, 'font-weight':700, fill:'var(--ink-2)' });
       t.textContent = fmtTime(ex.h);
       svg.appendChild(t);
     });
