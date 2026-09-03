@@ -797,7 +797,14 @@
     else if (heightM < 0.6){ tier = 1; color = 'var(--accent)'; }  // Slight
     else { tier = 2; color = 'var(--warning)'; }                   // Moderate/Rough
     const humps = 1 + tier;           // 1 / 2 / 3 crests
-    const wobbleAmt = tier * 0.4;     // 0 / .4 / .8 — crest-height irregularity
+    // 2026-09-03: was tier*0.4 (0/.4/.8) — at .8, 1+sin(x)*.8 can dip to
+    // 0.2x amplitude, which reads as a visually FLAT crest amid the
+    // others (David: "2 lines with the final ~25% of the upper one
+    // flat" — confirmed by hand: at tier 2/seed 0, i=2's wobble factor
+    // lands at ~0.2). Capped so the multiplier never drops below 0.7x —
+    // still gives visible per-crest size variation without any crest
+    // going flat.
+    const wobbleAmt = tier * 0.15;    // 0 / .15 / .3 — crest-height irregularity
     const seg = 48 / humps;
     function wavePath(yBase, seed){
       let d = `M0 ${yBase}`;
