@@ -275,12 +275,12 @@
   .more-info summary::before{ content:'+'; font-weight:800; }
   .more-info[open] summary::before{ content:'–'; }
   .more-info p{ margin:8px 0 0; color:var(--ink-2); max-width:65ch; }
-  .more-info p.swash-estimate{
+  .more-info p.twl-estimate{
     margin-top:12px; padding:10px 12px; border-radius:10px;
     background:var(--surface-2); border:1px solid var(--hairline);
     color:var(--ink-2); max-width:65ch;
   }
-  .swash-estimate strong{ color:var(--ink); font-variant-numeric:tabular-nums; }
+  .twl-estimate strong{ color:var(--ink); font-variant-numeric:tabular-nums; }
   .more-info ul{ margin:8px 0 0; padding-left:1.1em; max-width:65ch; color:var(--ink-2); display:flex; flex-direction:column; gap:6px; }
   .more-info li{ padding-left:2px; }
 
@@ -462,7 +462,7 @@
       <li>Water levels on the beach and hence beach access times are affected by wave heights. These will be estimated but this function is not yet implemented.</li>
     </ul>
     <p>The beach access times currently displayed are therefore rough estimates and should <strong>NOT</strong> be relied on yet.</p>
-    <p id="swashEstimate" class="swash-estimate" hidden></p>
+    <p id="twlEstimate" class="twl-estimate" hidden></p>
   </details>
   <div class="copyright">Always check the lifeguard flags on the beach — this page is a guide, not a substitute.</div>
   <div class="copyright">© 2026 David Inwood</div>
@@ -1282,15 +1282,20 @@
     document.getElementById('windStaleFlag').style.display = 'none';
     document.getElementById('waveStaleFlag').style.display = 'none';
     document.getElementById('staleLine').hidden = true;
-    renderSwashEstimate(null);
+    renderTwlEstimate(null);
     document.getElementById('clock').textContent = 'Live feed unavailable';
   }
 
-  // Swash/TWL briefing (v0.6) — an experimental, clearly-separate estimate
-  // shown only in the More Info panel, never affecting the main access
-  // cards (wh_open/sandy_open/wh_until/sandy_until are untouched). Hidden
-  // whenever the buoy feed is stale/dead (swash_data_ok) or either field
-  // is missing, rather than showing a stale or fabricated number.
+  // TWL (Total Water Level) briefing (v0.6) — an experimental, clearly-
+  // separate estimate shown only in the More Info panel, never affecting
+  // the main access cards (wh_open/sandy_open/wh_until/sandy_until are
+  // untouched). Hidden whenever the buoy feed is stale/dead (twl_data_ok)
+  // or either field is missing, rather than showing a stale or fabricated
+  // number. Renamed from "Swash" 2026-08-26 (HA side, beach_watch_public.
+  // yaml) — this panel mixes genuine open-beach swash (Stockdon, drives
+  // the times, kept swash_-prefixed below) with structure run-up (EurOtop,
+  // the height-now figure) under one heading, so "swash" alone undersold
+  // what's actually shown.
   // Per-ramp sentence, each using THAT ramp's own EurOtop Ru2% (the
   // number actually driving its time) rather than the unrelated Stockdon
   // open-beach swash figure, and picking "accessible"/"not accessible"
@@ -1310,8 +1315,8 @@
     const word = open ? 'accessible' : 'not accessible';
     return `${name} is estimated ${word} until about <strong>${until}</strong>`;
   }
-  function renderSwashEstimate(live){
-    const el = document.getElementById('swashEstimate');
+  function renderTwlEstimate(live){
+    const el = document.getElementById('twlEstimate');
     if (!el) return;
     // No live data at all (demo mode, or the live feed itself is down) —
     // this feature doesn't apply here, say nothing.
@@ -1322,7 +1327,7 @@
     // regardless) and say so explicitly, rather than the panel silently
     // vanishing, which reads as "this feature doesn't exist" rather than
     // "temporarily unavailable".
-    if (live.swash_data_ok === false){
+    if (live.twl_data_ok === false){
       el.hidden = false;
       el.innerHTML = 'Wave run-up data is currently unavailable (the wave buoy feed hasn’t updated recently) — the access times above don’t yet include a wave correction.';
       return;
@@ -1352,7 +1357,7 @@
     renderForecast(viewScn);
     renderFootnote(viewScn);
     renderHazardZone(tide, wind, waves);
-    renderSwashEstimate(liveData);
+    renderTwlEstimate(liveData);
     const ageMin = Math.max(0, Math.round((Date.now() - new Date(liveData.generated_at).getTime())/60000));
     document.getElementById('clock').textContent = liveError
       ? `Live feed unreachable — showing conditions from ${ageMin} min ago`
@@ -1373,7 +1378,7 @@
     renderForecast(scn);
     renderFootnote(scn);
     renderHazardZone(tide, wind, waves);
-    renderSwashEstimate(null);
+    renderTwlEstimate(null);
     document.getElementById('clock').textContent = 'Example conditions: ' + SCENARIOS[current].label;
   }
 
