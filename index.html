@@ -564,11 +564,31 @@
   }
   function findExtrema(pts){
     const out = [];
+    // 2026-09-03: the domain is now deliberately bracketed to real tidal
+    // events at both ends (see tide_extrema's windowing in
+    // beach_watch_public.yaml) — pts[0] and the last point ARE genuine
+    // highs/lows, not just wherever the old fixed clock-hours window
+    // happened to cut off. The neighbor-comparison loop below can't see
+    // them (no "both sides" to compare at an edge), so they were silently
+    // going unlabeled even though the curve correctly extended to them —
+    // looked like the graph stopped early when it hadn't. Add both edges
+    // explicitly, no comparison needed since they're known-good by
+    // construction.
+    if (pts.length){
+      const first = pts[0];
+      out.push({ h: first.h, height: first.height, kind: first.height > 4.0 ? 'high' : 'low' });
+    }
     for (let i = 1; i < pts.length - 1; i++){
       const a = pts[i-1].height, b = pts[i].height, c = pts[i+1].height;
       const isPeak = (b > a && b >= c) || (b < a && b <= c);
       if (isPeak && (!out.length || pts[i].h - out[out.length-1].h > 3)){
         out.push({ h: pts[i].h, height: b, kind: b > 4.0 ? 'high' : 'low' });
+      }
+    }
+    if (pts.length > 1){
+      const last = pts[pts.length - 1];
+      if (!out.length || last.h - out[out.length-1].h > 3){
+        out.push({ h: last.h, height: last.height, kind: last.height > 4.0 ? 'high' : 'low' });
       }
     }
     return out;
