@@ -226,6 +226,30 @@
   @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .src-flag{ color:var(--warning); } }
   :root[data-theme="dark"] .src-flag{ color:var(--warning); }
 
+  /* ---------- surf headline banner ----------
+     2026-09-04, layout pass: editorial "what's it like" phrase (surf_now),
+     deliberately NOT styled like .banner/.hazard-callout (accent-soft, not
+     warning/critical colors) — this is a description, not an alert, and
+     must read as visually distinct from the hazard-zone above it, which
+     stays the true top-priority slot (offshore-wind first, unchanged).
+     surf_later sits in the DOM ready to go but stays hidden until David's
+     confirmed the Met Office wind forecast holds up over time. */
+  .surf-banner{
+    border-radius:var(--radius); padding:14px 18px;
+    box-shadow:var(--shadow); border:1px solid var(--hairline);
+    background:var(--accent-soft); margin-bottom:16px;
+  }
+  .surf-banner .now{ font-size:1.25rem; font-weight:800; color:var(--ink); }
+  .surf-banner .later{ font-size:.84rem; color:var(--ink-2); margin-top:3px; }
+
+  /* ---------- lifeguard note — its own distinct line, not blended with
+     the copyright text underneath it (2026-09-04, layout pass) ---------- */
+  .lifeguard-note{
+    text-align:center; font-size:.8rem; color:var(--ink-2);
+    border:1px solid var(--hairline); border-radius:10px;
+    padding:9px 14px; margin:18px 0 6px; background:var(--surface);
+  }
+
   /* ---------- hazard zone — promoted, only-when-relevant cards ---------- */
   .hazard-zone{ display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
   .hazard-callout{
@@ -364,6 +388,11 @@
     </div>
   </div>
 
+  <div class="surf-banner" id="surfBanner" hidden>
+    <div class="now" id="surfNowText">–</div>
+    <div class="later" id="surfLaterText" hidden></div>
+  </div>
+
   <main class="panels">
     <section class="panel panel--sea">
       <div class="access-row">
@@ -395,6 +424,7 @@
           <div class="lbl">Waves</div>
           <svg class="hero-icon" id="waveIcon" viewBox="0 0 48 32"></svg>
           <div class="val" id="waveLabel" style="font-size:1.05rem">–</div>
+          <div class="sub" id="waveStats">–</div>
           <div class="src-flag" id="waveStaleFlag">Buoy data delayed</div>
         </div>
       </div>
@@ -463,7 +493,7 @@
     </ul>
     <p>The beach access times currently displayed are rough estimates and should <strong>NOT</strong> be relied on yet.</p>
   </details>
-  <div class="copyright">Always check the lifeguard flags on the beach — this page is a guide, not a substitute.</div>
+  <div class="lifeguard-note">Always check the lifeguard flags on the beach — this page is a guide, not a substitute.</div>
   <div class="copyright">© 2026 David Inwood</div>
 </div>
 
@@ -652,7 +682,7 @@
       windKn:9, gustKn:12, dirDeg:250,
       airTemp:19, feelsLike:18, humidity:62, pressureTrend:'steady',
       rainToday:0, rainNow:false, lastRainHrs:14,
-      seaTemp:17, waveHeightM:0.25,
+      seaTemp:17, waveHeightM:0.25, wavePeriodS:5,
       condition:'Sunny spells', kind:'sun', pop:10, uvIndex:5,
       station:'ok', surfNow:'Flat'
     },
@@ -661,7 +691,7 @@
       windKn:16, gustKn:24, dirDeg:75,
       airTemp:17, feelsLike:15, humidity:58, pressureTrend:'falling',
       rainToday:0, rainNow:false, lastRainHrs:30,
-      seaTemp:16, waveHeightM:0.9,
+      seaTemp:16, waveHeightM:0.9, wavePeriodS:11,
       condition:'Bright, blustery', kind:'wind', pop:15, uvIndex:4,
       station:'ok', surfNow:'Good surf — clean groundswell, offshore wind'
     },
@@ -670,7 +700,7 @@
       windKn:22, gustKn:31, dirDeg:260,
       airTemp:15, feelsLike:11, humidity:86, pressureTrend:'falling',
       rainToday:7.2, rainNow:true, lastRainHrs:0,
-      seaTemp:15, waveHeightM:2.8,
+      seaTemp:15, waveHeightM:2.8, wavePeriodS:9,
       condition:'Squally showers', kind:'rain', pop:85, uvIndex:1,
       station:'ok', surfNow:'Big waves, blown out — not recommended'
     },
@@ -679,7 +709,7 @@
       windKn:13, gustKn:18, dirDeg:210,
       airTemp:18, feelsLike:17, humidity:70, pressureTrend:'steady',
       rainToday:1.4, rainNow:false, lastRainHrs:3,
-      seaTemp:16, waveHeightM:0.5,
+      seaTemp:16, waveHeightM:0.5, wavePeriodS:6,
       condition:'Cloudy periods', kind:'cloud', pop:40, uvIndex:3,
       station:'stale', surfNow:'Small, choppy waves'
     }
@@ -710,6 +740,7 @@
       pressureTrend: live.pressure_trend || 'steady', // now genuinely wired server-side (2026-09-04) — '||' here is just the same-shape-as-demo-fixtures fallback, not covering a missing field anymore
       rainToday: live.rain_today, rainNow: live.rain_now, lastRainHrs: live.last_rain_hrs,
       seaTemp: live.sea_temp, waveHeightM: live.wave_height_m,
+      wavePeriodS: Number(live.wave_period_s) || 0,
       waveStation: live.wave_data_ok === false ? 'stale' : 'ok',
       condition: live.condition, kind: kindFromCondition(live.condition),
       pop: live.pop, uvIndex: live.uv_index, forecastOk: live.forecast_ok !== false,
@@ -1302,7 +1333,32 @@
     // scn.waveStation only exists in live mode (via liveToScn) — demo
     // scenarios have no equivalent concept, so this stays hidden for them.
     document.getElementById('waveStaleFlag').style.display = scn.waveStation === 'stale' ? 'block' : 'none';
+    // 2026-09-04, layout pass: plain Hs/period numbers, demoted below the
+    // new surf_now headline banner rather than removed — per David, the
+    // phrase answers "what's it like", the number is still there for
+    // anyone who wants to check it themselves.
+    const statsEl = document.getElementById('waveStats');
+    statsEl.textContent = scn.wavePeriodS
+      ? `${scn.waveHeightM.toFixed(1)}m, ${Math.round(scn.wavePeriodS)}s period`
+      : `${scn.waveHeightM.toFixed(1)}m`;
     return { waveLabel: lbl, waveHeightM: scn.waveHeightM };
+  }
+
+  // 2026-09-04, layout pass: editorial "surf now" headline — a short
+  // human phrase (surf_phrase(), HA-side), never a number/score. Sits
+  // below the hazard-zone (offshore-wind stays the top priority slot,
+  // unchanged) so it reads as descriptive, not an alert. surf_later is
+  // deliberately NOT rendered here yet — David wants to test/build a
+  // track record for how well the Met Office wind forecast anticipates
+  // real beach conditions (sea breeze especially) before showing it;
+  // #surfLaterText stays in the DOM, hidden, ready for whenever that's
+  // confirmed — see liveToScn's own comment on live.surf_later.
+  function renderSurfBanner(scn){
+    const el = document.getElementById('surfBanner');
+    const nowEl = document.getElementById('surfNowText');
+    if (!scn.surfNow){ el.hidden = true; nowEl.textContent = ''; return; }
+    el.hidden = false;
+    nowEl.textContent = scn.surfNow;
   }
 
   function renderForecast(scn){
@@ -1393,6 +1449,8 @@
     document.getElementById('windStaleFlag').style.display = 'none';
     document.getElementById('waveStaleFlag').style.display = 'none';
     document.getElementById('staleLine').hidden = true;
+    document.getElementById('waveStats').textContent = '–';
+    document.getElementById('surfBanner').hidden = true;
     renderTwlEstimate(null);
     document.getElementById('clock').textContent = 'Live feed unavailable';
   }
@@ -1476,6 +1534,7 @@
     renderForecast(viewScn);
     renderFootnote(viewScn);
     renderHazardZone(tide, wind, waves);
+    renderSurfBanner(viewScn);
     renderTwlEstimate(liveData);
     const ageMin = Math.max(0, Math.round((Date.now() - new Date(liveData.generated_at).getTime())/60000));
     document.getElementById('clock').textContent = liveError
@@ -1497,6 +1556,7 @@
     renderForecast(scn);
     renderFootnote(scn);
     renderHazardZone(tide, wind, waves);
+    renderSurfBanner(scn);
     renderTwlEstimate(null);
     document.getElementById('clock').textContent = 'Example conditions: ' + SCENARIOS[current].label;
   }
