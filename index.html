@@ -459,7 +459,6 @@
       <li>Tide times are ADMIRALTY® data: © Crown copyright and database right.</li>
       <li>Tide heights, now and predicted, are from an instrument and data supplied by the National Oceanographic Centre. It overlooks the water from Bideford Bar to Instow and uses satellite reflections (GNSS-IR) to measure the actual water levels. It therefore takes into account any pressure and wind effects. Although this is not exactly the same as Westward Ho! beach, there is nowhere nearer and the differences will be small.</li>
       <li>Sea conditions are from the Channel Coastal Observatory, Bideford Bay buoy located a few hundred metres off the beach. The temperature will normally be lower than at the water's edge.</li>
-      <li>Water levels on the beach and hence beach access times are affected by wave heights. These will be estimated but this function is not yet implemented.</li>
     </ul>
     <p>The beach access times currently displayed are therefore rough estimates and should <strong>NOT</strong> be relied on yet.</p>
     <p id="twlEstimate" class="twl-estimate" hidden></p>
@@ -1185,8 +1184,17 @@
       document.getElementById('tideNowVal').textContent = '–';
     }
     applyTideStateTile(live.tide_state);
-    renderAccessLive('wh', live.wh_open, live.wh_until);
-    renderAccessLive('sandy', live.sandy_open, live.sandy_until);
+    // 2026-09-04: swapped per David, now that the swash/run-up correction
+    // has been tested enough to trust as primary. Main cards now show the
+    // WAVE-CORRECTED times (swash_wh_*/swash_sandy_*) instead of the
+    // plain calm-day ones; the plain ones moved to the More Info panel's
+    // "excluding this" reference numbers (see renderTwlEstimate). Safe
+    // even when the wave buoy is stale/dead: effective_closure_tide_wh/
+    // _sandy (HA-side) degrade to the plain threshold when swash data
+    // isn't usable, so swash_wh_until/swash_sandy_until never go missing
+    // or wrong during an outage — they just quietly equal the plain value.
+    renderAccessLive('wh', live.swash_wh_open, live.swash_wh_until);
+    renderAccessLive('sandy', live.swash_sandy_open, live.swash_sandy_until);
     return { state: live.tide_state, fastRiseTime: live.tide_fast_rise_time || null };
   }
 
@@ -1391,9 +1399,17 @@
   // ramp STRUCTURE water is running once it's already there (EurOtop/
   // alpha) — shown once, for Westward Ho only, not as two separate
   // per-ramp numbers.
-  function swashRampClause(name, open, until){
-    const word = open ? 'accessible' : 'not accessible';
-    return `${name} is estimated ${word} until about <strong>${until}</strong>`;
+  // 2026-09-04: this panel now shows the PLAIN (non-wave-adjusted) times
+  // as a counterfactual reference — "excluding the run-up, here's when it
+  // would otherwise open/close" — since the main cards switched to the
+  // wave-corrected times. Full clause for the first ramp, elliptical
+  // (repeated "would be accessible" dropped, matching normal English
+  // list-shortening) for the second, per David's own example phrasing.
+  function plainRampClauseFull(name, open, until){
+    return `${name} would ${open ? 'be' : 'not be'} accessible until about <strong>${until}</strong>`;
+  }
+  function plainRampClauseShort(name, open, until){
+    return `${name} ${open ? '' : 'not '}until about <strong>${until}</strong>`;
   }
   function renderTwlEstimate(live){
     const el = document.getElementById('twlEstimate');
@@ -1402,25 +1418,25 @@
     // this feature doesn't apply here, say nothing.
     if (!live){ el.hidden = true; el.innerHTML = ''; return; }
     // Live data IS flowing, but specifically the wave sub-feed is stale/
-    // dead — fall back to what the page already shows elsewhere (the
-    // plain, non-wave-corrected access times above are untouched
-    // regardless) and say so explicitly, rather than the panel silently
-    // vanishing, which reads as "this feature doesn't exist" rather than
-    // "temporarily unavailable".
+    // dead — the run-up height figure and "excluding this" framing don't
+    // mean much with no real wave data behind them, so say so explicitly
+    // rather than showing a hollow "0.0m of run-up" sentence. The MAIN
+    // cards above are unaffected either way (they degrade gracefully to
+    // the plain value automatically — see the comment in renderTideLive).
     if (live.twl_data_ok === false){
       el.hidden = false;
-      el.innerHTML = 'Wave run-up data is currently unavailable (the wave buoy feed hasn’t updated recently) — the access times above don’t yet include a wave correction.';
+      el.innerHTML = 'Wave run-up data is currently unavailable (the wave buoy feed hasn’t updated recently).';
       return;
     }
-    const whT = live.swash_wh_until, sandyT = live.swash_sandy_until;
+    const whT = live.wh_until, sandyT = live.sandy_until;
     const whRu2 = Number(live.wh_ramp_ru2_m);
     const ok = whT && sandyT && Number.isFinite(whRu2)
-      && typeof live.swash_wh_open === 'boolean' && typeof live.swash_sandy_open === 'boolean';
+      && typeof live.wh_open === 'boolean' && typeof live.sandy_open === 'boolean';
     if (!ok){ el.hidden = true; el.innerHTML = ''; return; }
     el.hidden = false;
-    el.innerHTML = `These are estimated to be <strong>${whRu2.toFixed(1)}m</strong> of wave run-up on Westward Ho! slip right now: `
-      + swashRampClause('Westward Ho! slip', live.swash_wh_open, whT) + '; '
-      + swashRampClause('Sandymere ramp', live.swash_sandy_open, sandyT) + '.';
+    el.innerHTML = `Water levels on the beach and hence beach access times are affected by wave heights, estimated above. There is an estimated <strong>${whRu2.toFixed(1)}m</strong> of wave run-up on Westward Ho! slip right now: excluding this, `
+      + plainRampClauseFull('Westward Ho! slip', live.wh_open, whT) + '; '
+      + plainRampClauseShort('Sandymere ramp', live.sandy_open, sandyT) + '.';
   }
 
   function renderLive(){
