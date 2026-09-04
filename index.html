@@ -188,6 +188,14 @@
   .stat-tile .lbl{ font-size:.68rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-muted); }
   .stat-tile .val{ font-size:1.35rem; font-weight:800; font-variant-numeric:tabular-nums; display:flex; align-items:center; gap:6px; }
   .stat-tile .sub{ font-size:.78rem; color:var(--ink-2); margin-top:auto; }
+  /* 2026-09-04: the Waves tile's sub-line was inheriting margin-top:auto
+     from .stat-tile .sub, which pushes it to the BOTTOM of the tile
+     (correct for pressureSub/rainSub, which want to bottom-align against
+     a taller neighbour) — but this tile's icon+label already fill the
+     height, so that auto margin just added visible dead space, making the
+     Waves tile noticeably taller than "Tide is" next to it. Pinned close
+     under the label instead, smaller too (David). */
+  #waveStats{ font-size:.7rem; margin-top:0; }
   .stat-tile svg{ width:26px; height:26px; flex:none; }
   .pictogram-tile{ align-items:center; text-align:center; }
   .pictogram-tile svg.hero-icon{ width:44px; height:44px; margin:2px 0; }
@@ -239,7 +247,7 @@
     box-shadow:var(--shadow); border:1px solid var(--hairline);
     background:var(--accent-soft); margin-bottom:16px;
   }
-  .surf-banner .now{ font-size:1.25rem; font-weight:800; color:var(--ink); }
+  .surf-banner .now{ font-size:.86rem; font-weight:800; color:var(--ink); } /* 2026-09-04: matched to .access-card .name's size (David) — was 1.25rem */
   .surf-banner .later{ font-size:.84rem; color:var(--ink-2); margin-top:3px; }
 
   /* ---------- lifeguard note — its own distinct line, not blended with
@@ -1358,7 +1366,7 @@
     const nowEl = document.getElementById('surfNowText');
     if (!scn.surfNow){ el.hidden = true; nowEl.textContent = ''; return; }
     el.hidden = false;
-    nowEl.textContent = scn.surfNow;
+    nowEl.textContent = 'Surf forecast: ' + scn.surfNow;
   }
 
   function renderForecast(scn){
