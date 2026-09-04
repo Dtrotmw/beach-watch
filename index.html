@@ -654,7 +654,7 @@
       rainToday:0, rainNow:false, lastRainHrs:14,
       seaTemp:17, waveHeightM:0.25,
       condition:'Sunny spells', kind:'sun', pop:10, uvIndex:5,
-      station:'ok'
+      station:'ok', surfNow:'Flat'
     },
     offshore: {
       label:'Offshore wind', tideAmp:2.6,
@@ -663,7 +663,7 @@
       rainToday:0, rainNow:false, lastRainHrs:30,
       seaTemp:16, waveHeightM:0.9,
       condition:'Bright, blustery', kind:'wind', pop:15, uvIndex:4,
-      station:'ok'
+      station:'ok', surfNow:'Good surf — clean groundswell, offshore wind'
     },
     swell: {
       label:'Big swell, spring tide', tideAmp:4.15, forcePhase:'risingFast',
@@ -672,7 +672,7 @@
       rainToday:7.2, rainNow:true, lastRainHrs:0,
       seaTemp:15, waveHeightM:2.8,
       condition:'Squally showers', kind:'rain', pop:85, uvIndex:1,
-      station:'ok'
+      station:'ok', surfNow:'Big waves, blown out — not recommended'
     },
     stale: {
       label:'Station stuck', tideAmp:3.3,
@@ -681,7 +681,7 @@
       rainToday:1.4, rainNow:false, lastRainHrs:3,
       seaTemp:16, waveHeightM:0.5,
       condition:'Cloudy periods', kind:'cloud', pop:40, uvIndex:3,
-      station:'stale'
+      station:'stale', surfNow:'Small, choppy waves'
     }
   };
   let current = 'live';
@@ -707,13 +707,16 @@
       gustKn: (live.wind_gust_mph || 0) / 1.15078,
       dirDeg: DIR_DEG[live.wind_dir] ?? 0,
       airTemp: live.air_temp, feelsLike: live.feels_like, humidity: live.humidity,
-      pressureTrend: live.pressure_trend || 'steady', // not yet in the HA payload — defaults to steady
+      pressureTrend: live.pressure_trend || 'steady', // now genuinely wired server-side (2026-09-04) — '||' here is just the same-shape-as-demo-fixtures fallback, not covering a missing field anymore
       rainToday: live.rain_today, rainNow: live.rain_now, lastRainHrs: live.last_rain_hrs,
       seaTemp: live.sea_temp, waveHeightM: live.wave_height_m,
       waveStation: live.wave_data_ok === false ? 'stale' : 'ok',
       condition: live.condition, kind: kindFromCondition(live.condition),
       pop: live.pop, uvIndex: live.uv_index, forecastOk: live.forecast_ok !== false,
-      station: live.station_ok ? 'ok' : 'stale'
+      station: live.station_ok ? 'ok' : 'stale',
+      // 2026-09-04: data plumbed through now; no banner renders it yet —
+      // that's the separate layout pass David asked to scope out on its own.
+      surfNow: live.surf_now || ''
     };
   }
   async function fetchLive(){
