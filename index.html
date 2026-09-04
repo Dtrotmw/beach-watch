@@ -275,11 +275,11 @@
   .more-info summary::before{ content:'+'; font-weight:800; }
   .more-info[open] summary::before{ content:'–'; }
   .more-info p{ margin:8px 0 0; color:var(--ink-2); max-width:65ch; }
-  .more-info p.twl-estimate{
-    margin-top:12px; padding:10px 12px; border-radius:10px;
-    background:var(--surface-2); border:1px solid var(--hairline);
-    color:var(--ink-2); max-width:65ch;
-  }
+  /* 2026-09-04: was its own highlighted "box" paragraph after the list;
+     now it's the list's own last bullet (David), so the box treatment
+     (background/border/padding) is gone — it just inherits plain
+     .more-info li styling like its siblings. Kept the <strong> numeric
+     styling since that's still just inline emphasis within the bullet text. */
   .twl-estimate strong{ color:var(--ink); font-variant-numeric:tabular-nums; }
   .more-info ul{ margin:8px 0 0; padding-left:1.1em; max-width:65ch; color:var(--ink-2); display:flex; flex-direction:column; gap:6px; }
   .more-info li{ padding-left:2px; }
@@ -459,9 +459,9 @@
       <li>Tide times are ADMIRALTY® data: © Crown copyright and database right.</li>
       <li>Tide heights, now and predicted, are from an instrument and data supplied by the National Oceanographic Centre. It overlooks the water from Bideford Bar to Instow and uses satellite reflections (GNSS-IR) to measure the actual water levels. It therefore takes into account any pressure and wind effects. Although this is not exactly the same as Westward Ho! beach, there is nowhere nearer and the differences will be small.</li>
       <li>Sea conditions are from the Channel Coastal Observatory, Bideford Bay buoy located a few hundred metres off the beach. The temperature will normally be lower than at the water's edge.</li>
+      <li id="twlEstimate" class="twl-estimate" hidden></li>
     </ul>
-    <p>The beach access times currently displayed are therefore rough estimates and should <strong>NOT</strong> be relied on yet.</p>
-    <p id="twlEstimate" class="twl-estimate" hidden></p>
+    <p>The beach access times currently displayed are rough estimates and should <strong>NOT</strong> be relied on yet.</p>
   </details>
   <div class="copyright">Always check the lifeguard flags on the beach — this page is a guide, not a substitute.</div>
   <div class="copyright">© 2026 David Inwood</div>
@@ -1068,6 +1068,26 @@
       svg.appendChild(wlbl);
     }
 
+    // ---- time-axis compression break mark ---------------------------------
+    // 2026-09-04, David: the 2:1 compression (second half of the domain
+    // drawn at half the pixel-density of the first) needs to be visible AS
+    // a discontinuity, not just implied by the curve looking odd there.
+    // Classic chart axis-break convention: a vertical squiggle/zigzag at
+    // the point the scale changes. Drawn on top of the curve (after it,
+    // below) so it reads clearly rather than getting lost under the fill.
+    if (domainMid > domainStart && domainMid < domainEnd){
+      const bx = x(domainMid);
+      const zigzagN = 8, zigzagW = 3.5;
+      const stepH = (plotBottom - padT) / zigzagN;
+      let bd = `M ${bx.toFixed(1)} ${padT}`;
+      for (let i = 1; i <= zigzagN; i++){
+        const by = padT + i * stepH;
+        const bxx = bx + (i % 2 === 0 ? zigzagW : -zigzagW);
+        bd += ` L ${bxx.toFixed(1)} ${by.toFixed(1)}`;
+      }
+      svg.appendChild(el('path', { d: bd, fill:'none', stroke:'var(--ink-muted)', 'stroke-width':1.6, 'stroke-linejoin':'round', opacity:.7 }));
+    }
+
     // ---- "now" marker: the most prominent element in this row ------------
     // Bolder line 2026-09-03 (David: was the same 1px weight as ordinary
     // gridlines, easy to miss) — matches the dot's --critical color now.
@@ -1434,7 +1454,7 @@
       && typeof live.wh_open === 'boolean' && typeof live.sandy_open === 'boolean';
     if (!ok){ el.hidden = true; el.innerHTML = ''; return; }
     el.hidden = false;
-    el.innerHTML = `Water levels on the beach and hence beach access times are affected by wave heights, estimated above. There is an estimated <strong>${whRu2.toFixed(1)}m</strong> of wave run-up on Westward Ho! slip right now: excluding this, `
+    el.innerHTML = `Water levels on the beach and hence the beach access times estimated above are affected by wave heights. There is an estimated <strong>${whRu2.toFixed(1)}m</strong> of wave run-up on Westward Ho! slip right now: excluding this, `
       + plainRampClauseFull('Westward Ho! slip', live.wh_open, whT) + '; '
       + plainRampClauseShort('Sandymere ramp', live.sandy_open, sandyT) + '.';
   }
