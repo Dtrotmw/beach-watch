@@ -223,8 +223,15 @@
   .wind-hero{ display:flex; align-items:center; gap:16px; }
   .wind-hero .rose{ flex:0 0 auto; width:112px; height:112px; }
   .wind-hero .readout{ display:flex; flex-direction:column; gap:2px; }
+  .wind-hero .mph-row{ display:flex; align-items:baseline; gap:10px; }
   .wind-hero .mph{ font-size:clamp(2.1rem,1.6rem + 1.6vw,2.7rem); font-weight:800; font-variant-numeric:tabular-nums; line-height:1; }
   .wind-hero .mph small{ font-size:.42em; font-weight:700; color:var(--ink-muted); margin-left:4px; }
+  /* 2026-09-07: council asked for the direction letters separately next
+     to the mph figure rather than overlaid on the rose's arrow — 1.5rem
+     (24px) matches the size used in the rose center (26 SVG units at the
+     rose's 112/120 render scale). Color still flips to --critical when
+     offshore, same as the rose arrow itself, via renderWind(). */
+  .wind-hero .dir-label{ font-size:1.5rem; font-weight:800; color:var(--ink); }
   .wind-hero .desc{ font-size:.92rem; font-weight:700; color:var(--ink-2); }
   .wind-hero .gust{ font-size:.78rem; color:var(--ink-muted); }
   .src-flag{
@@ -442,7 +449,10 @@
       <div class="card wind-hero">
         <svg class="rose" id="windRose" viewBox="0 0 120 120"></svg>
         <div class="readout">
-          <div class="mph"><span id="windMph">–</span><small>mph</small></div>
+          <div class="mph-row">
+            <div class="mph"><span id="windMph">–</span><small>mph</small></div>
+            <div class="dir-label" id="windDirLabel">–</div>
+          </div>
           <div class="desc" id="windDesc">–</div>
           <div class="gust" id="windGust">–</div>
           <div class="src-flag" id="windStaleFlag">Via RNLI backup reading</div>
@@ -888,7 +898,7 @@
       }));
     });
   }
-  function drawWindRose(target, dirDeg, speedKn, offshore, dirLabel){
+  function drawWindRose(target, dirDeg, speedKn, offshore){
     target.innerHTML = "";
     target.setAttribute('viewBox','0 0 120 120');
     const bg = wgScheme(speedKn, 'wind');
@@ -908,16 +918,7 @@
     const g = el('g', { transform:`translate(${hx} ${hy}) rotate(${headA+90})` });
     g.appendChild(el('path', { d:'M0 -8 8 8 -8 8 Z', fill: offshore ? 'var(--critical)' : bg }));
     target.appendChild(g);
-    // 2026-09-07: Northam Town Council feedback — the current wind
-    // direction's initials, big and bold, using the rose's own empty
-    // center (previously just a small pivot dot) rather than adding a
-    // new element elsewhere in the already-full wind-hero card.
-    if (dirLabel){
-      const dt = el('text', { x:60, y:60, 'text-anchor':'middle', 'dominant-baseline':'central', 'font-size':26, 'font-weight':800, fill: offshore ? 'var(--critical)' : 'var(--ink)' });
-      dt.textContent = dirLabel; target.appendChild(dt);
-    } else {
-      target.appendChild(el('circle', { cx:60, cy:60, r:5, fill:'var(--ink)' }));
-    }
+    target.appendChild(el('circle', { cx:60, cy:60, r:5, fill:'var(--ink)' }));
   }
   function drawForecastIcon(target, kind){
     const map = {
@@ -1301,7 +1302,13 @@
     // windsock, not a graduated one; matches that.
     const offshore = dirLabel.includes('E') && scn.windKn >= 8;
 
-    drawWindRose(document.getElementById('windRose'), scn.dirDeg, scn.windKn, offshore, dirLabel);
+    drawWindRose(document.getElementById('windRose'), scn.dirDeg, scn.windKn, offshore);
+    // 2026-09-07: council asked for the direction letters separately next
+    // to the mph figure (not overlaid on the rose's arrow) — same size
+    // (1.5rem) and offshore-critical coloring as when it was in the rose.
+    const dirLabelEl = document.getElementById('windDirLabel');
+    dirLabelEl.textContent = dirLabel;
+    dirLabelEl.style.color = offshore ? 'var(--critical)' : 'var(--ink)';
 
     document.getElementById('feelsVal').textContent = Math.round(scn.feelsLike);
     document.getElementById('airTempVal').textContent = Math.round(scn.airTemp);
@@ -1455,7 +1462,8 @@
     document.getElementById('tideRateLabel').textContent = '–';
     document.getElementById('tideRateLabel').style.color = '';
     document.getElementById('tideRateIcon').innerHTML = '';
-    drawWindRose(document.getElementById('windRose'), 0, 0, false, '');
+    drawWindRose(document.getElementById('windRose'), 0, 0, false);
+    document.getElementById('windDirLabel').textContent = '–';
     drawWaveIcon(document.getElementById('waveIcon'), 0);
     drawForecastIcon(document.getElementById('forecastIcon'), 'cloud');
     document.getElementById('whPill').textContent = '–'; document.getElementById('whPill').className = 'pill closed';
