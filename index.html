@@ -888,7 +888,7 @@
       }));
     });
   }
-  function drawWindRose(target, dirDeg, speedKn, offshore){
+  function drawWindRose(target, dirDeg, speedKn, offshore, dirLabel){
     target.innerHTML = "";
     target.setAttribute('viewBox','0 0 120 120');
     const bg = wgScheme(speedKn, 'wind');
@@ -908,7 +908,16 @@
     const g = el('g', { transform:`translate(${hx} ${hy}) rotate(${headA+90})` });
     g.appendChild(el('path', { d:'M0 -8 8 8 -8 8 Z', fill: offshore ? 'var(--critical)' : bg }));
     target.appendChild(g);
-    target.appendChild(el('circle', { cx:60, cy:60, r:5, fill:'var(--ink)' }));
+    // 2026-09-07: Northam Town Council feedback — the current wind
+    // direction's initials, big and bold, using the rose's own empty
+    // center (previously just a small pivot dot) rather than adding a
+    // new element elsewhere in the already-full wind-hero card.
+    if (dirLabel){
+      const dt = el('text', { x:60, y:60, 'text-anchor':'middle', 'dominant-baseline':'central', 'font-size':26, 'font-weight':800, fill: offshore ? 'var(--critical)' : 'var(--ink)' });
+      dt.textContent = dirLabel; target.appendChild(dt);
+    } else {
+      target.appendChild(el('circle', { cx:60, cy:60, r:5, fill:'var(--ink)' }));
+    }
   }
   function drawForecastIcon(target, kind){
     const map = {
@@ -1292,7 +1301,7 @@
     // windsock, not a graduated one; matches that.
     const offshore = dirLabel.includes('E') && scn.windKn >= 8;
 
-    drawWindRose(document.getElementById('windRose'), scn.dirDeg, scn.windKn, offshore);
+    drawWindRose(document.getElementById('windRose'), scn.dirDeg, scn.windKn, offshore, dirLabel);
 
     document.getElementById('feelsVal').textContent = Math.round(scn.feelsLike);
     document.getElementById('airTempVal').textContent = Math.round(scn.airTemp);
@@ -1366,7 +1375,9 @@
     const nowEl = document.getElementById('surfNowText');
     if (!scn.surfNow){ el.hidden = true; nowEl.textContent = ''; return; }
     el.hidden = false;
-    nowEl.textContent = 'Surf forecast: ' + scn.surfNow;
+    // 2026-09-07: "report" not "forecast" (Northam Town Council feedback) —
+    // this line is a live read of current conditions, not a prediction.
+    nowEl.textContent = 'Surf report: ' + scn.surfNow;
   }
 
   function renderForecast(scn){
@@ -1444,7 +1455,7 @@
     document.getElementById('tideRateLabel').textContent = '–';
     document.getElementById('tideRateLabel').style.color = '';
     document.getElementById('tideRateIcon').innerHTML = '';
-    drawWindRose(document.getElementById('windRose'), 0, 0, false);
+    drawWindRose(document.getElementById('windRose'), 0, 0, false, '');
     drawWaveIcon(document.getElementById('waveIcon'), 0);
     drawForecastIcon(document.getElementById('forecastIcon'), 'cloud');
     document.getElementById('whPill').textContent = '–'; document.getElementById('whPill').className = 'pill closed';
