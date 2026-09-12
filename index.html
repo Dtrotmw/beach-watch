@@ -507,6 +507,7 @@
       <li>Tide times are ADMIRALTY® data: © Crown copyright and database right.</li>
       <li>Tide heights, now and predicted, are from an instrument and data supplied by the National Oceanographic Centre. It overlooks the water from Bideford Bar to Instow and uses satellite reflections (GNSS-IR) to measure the actual water levels. It therefore takes into account any pressure and wind effects. Although this is not exactly the same as Westward Ho! beach, there is nowhere nearer and the differences will be small.</li>
       <li>Sea conditions are from the Channel Coastal Observatory, Bideford Bay buoy located a few hundred metres off the beach. The temperature will normally be lower than at the water's edge.</li>
+      <li>"Tide rising fast"/"very fast" is about how quickly the water's edge itself moves up the sand — mostly driven by wave run-up, not the tide rising, since a wave running up the beach moves far faster than the tide itself ever does. We're not saying you can't walk faster than the water — you can — just that at these levels it's moving briskly enough that you need to be paying attention and keep moving, not lingering.</li>
       <li id="twlEstimate" class="twl-estimate" hidden></li>
     </ul>
     <p>The beach access times currently displayed are rough estimates and should <strong>NOT</strong> be relied on yet.</p>
@@ -1267,7 +1268,7 @@
     // or wrong during an outage — they just quietly equal the plain value.
     renderAccessLive('wh', live.swash_wh_open, live.swash_wh_until);
     renderAccessLive('sandy', live.swash_sandy_open, live.swash_sandy_until);
-    return { state: live.tide_state, fastRiseTime: live.tide_fast_rise_time || null };
+    return { state: live.tide_state, fastRiseTime: live.tide_fast_rise_time || null, fastRiseSameDay: live.tide_fast_rise_same_day !== false };
   }
 
   function renderWind(scn){
@@ -1436,7 +1437,12 @@
     tideCard.style.display = tide.fastRiseTime ? 'flex' : 'none';
     if (tide.fastRiseTime){
       drawArrowUp(document.getElementById('tideFastIcon'), 'var(--critical)', true);
-      document.getElementById('tideFastHeadline').textContent = `Tide will rise very fast around ${tide.fastRiseTime} today`;
+      // 2026-09-12: fixed a real bug — this always said "today" even when
+      // the predicted crossing (up to 20h ahead) actually fell tomorrow,
+      // since the HA-side value was only ever an "HH:MM" string with no
+      // date attached. tide_fast_rise_same_day now carries that.
+      const dayWord = tide.fastRiseSameDay ? 'today' : 'tomorrow';
+      document.getElementById('tideFastHeadline').textContent = `Tide will rise very fast around ${tide.fastRiseTime} ${dayWord}`;
     }
   }
 
